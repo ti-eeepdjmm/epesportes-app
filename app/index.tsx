@@ -11,7 +11,7 @@ export default function StartApp() {
       if (registered) {
         router.replace('./(auth)/login');
       } else {
-        router.replace('./(tabs)/(home)/'); // sua tela inicial de boas-vindas
+        router.replace('./(tabs)/'); // sua tela inicial de boas-vindas
       }
     }
     check();

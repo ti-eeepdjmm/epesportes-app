@@ -1,50 +1,122 @@
-# Welcome to your Expo app 👋
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+# 🏆 EPesportes App
 
-## Get started
+Aplicativo mobile do **EPesportes**, uma plataforma interativa para acompanhar campeonatos interclasses, estatísticas de jogos, escalações, desafios e muito mais! Desenvolvido em **React Native com Expo**, este repositório contém o código-fonte da interface mobile do projeto.
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## 📱 Tecnologias Utilizadas
 
-2. Start the app
+- [React Native](https://reactnative.dev/)
+- [Expo](https://expo.dev/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [React Navigation](https://reactnavigation.org/)
+- [Axios](https://axios-http.com/)
+- [React Hook Form](https://react-hook-form.com/)
+- [Zod](https://zod.dev/) (validações)
+- [SVG Icons e Assets customizados](./assets)
+- Suporte a **tema escuro** e **modo claro**
 
-   ```bash
-    npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## 📂 Estrutura do Projeto
 
 ```bash
-npm run reset-project
+.
+├── app/                 # Navegação principal (rotas e stacks)
+├── assets/              # Imagens, SVGs, fontes e ícones
+├── components/          # Componentes reutilizáveis
+├── constants/           # Constantes globais (ex: cores, variáveis, etc.)
+├── context/             # Context API para estado global (ex: auth, tema)
+├── hooks/               # Custom Hooks
+├── utils/               # Utilitários diversos (formatadores, helpers)
+├── app.json             # Configuração do projeto Expo
+├── eas.json             # Configuração do EAS Build
+├── tsconfig.json        # Configuração do TypeScript
+├── package.json         # Dependências e scripts do projeto
+└── README.md            # Documentação do projeto
+
+---
+
+## ⚙️ Instalação
+
+1. Clone este repositório:
+
+```bash
+git clone https://github.com/seu-usuario/epesportes-frontend.git
+cd epesportes-frontend
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Instale as dependências:
 
-## Learn more
+```bash
+npm install
+# ou
+yarn
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+3. Inicie o projeto com o Expo:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npx expo start
+```
 
-## Join the community
+---
 
-Join our community of developers creating universal apps.
+## 🔐 Variáveis de Ambiente
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
+
+```env
+API_URL=https://sua-api.com/api
+```
+
+Utilize a biblioteca `expo-constants` ou `react-native-dotenv` para ler essas variáveis.
+
+---
+
+## 📌 Funcionalidades Principais
+
+- [x] Autenticação de usuários (aluno, professor)
+- [x] Cadastro de time favorito
+- [x] Feed de postagens com comentários e reações
+- [x] Tabela de classificação e estatísticas
+- [x] Escalação de jogadores
+- [x] Desafios, enquetes e sistema de votação
+- [x] Integração com WebSocket (notificações em tempo real)
+- [x] Modo escuro e responsividade mobile first
+
+---
+
+## 🚀 Próximas Entregas
+
+- [x] Fluxo de onboarding do App
+- [x] Fluxo de auth do App 
+- [ ] Fluxo de register do App
+- [ ] Tela home 
+- [ ] Notificações push
+- [ ] Tela resenha e feed
+
+---
+
+## 👨‍💻 Contribuindo
+
+1. Faça um fork do projeto.
+2. Crie uma branch: `git checkout -b minha-feature`
+3. Faça commit das suas alterações: `git commit -m 'feat: minha nova funcionalidade'`
+4. Push para sua branch: `git push origin minha-feature`
+5. Abra um Pull Request
+
+---
+
+## 🧪 Testes
+
+> Em breve: configuração de testes com Jest + Testing Library.
+
+---
+
+## 📄 Licença
+
+Este projeto está licenciado sob a licença MIT. Veja o arquivo [LICENSE](./LICENSE) para mais detalhes.
+
+---

@@ -11,15 +11,18 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.primary,
-        tabBarInactiveTintColor: theme.text,
+        tabBarActiveTintColor: theme.white,
+        tabBarInactiveTintColor: theme.white,
         tabBarStyle: {
-          backgroundColor: theme.background,
-          borderTopColor: theme.border || '#ccc',
-          height: 60,
+          backgroundColor: theme.greenBackground,
+          borderTopColor: theme.white || '#ccc',
+          height: 72,
+          paddingTop: 12,
         },
         tabBarLabelStyle: {
           fontSize: 12,
+          fontFamily:'Poppins_400Regular',
+          color: "white",
         },
       }}
     >
@@ -31,17 +34,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="resenha"
-        options={{
-          title: 'Resenha',
-          tabBarIcon: ({ focused }) => <TabIcon name="resenha" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
         name="games"
         options={{
           title: 'Jogos',
           tabBarIcon: ({ focused }) => <TabIcon name="games" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="resenha"
+        options={{
+          title: 'Resenha',
+          tabBarIcon: ({ focused }) => <TabIcon name="resenha" focused={focused} />,
         }}
       />
       <Tabs.Screen
