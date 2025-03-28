@@ -11,15 +11,16 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.primary,
-        tabBarInactiveTintColor: theme.text,
+        tabBarActiveTintColor: theme.white,
+        tabBarInactiveTintColor: theme.white,
         tabBarStyle: {
-          backgroundColor: theme.background,
-          borderTopColor: theme.border || '#ccc',
+          backgroundColor: theme.greenBackground,
+          borderTopColor: theme.white || '#ccc',
           height: 60,
         },
         tabBarLabelStyle: {
           fontSize: 12,
+          fontFamily:'Poppins_400Regular',
         },
       }}
     >

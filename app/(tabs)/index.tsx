@@ -1,3 +1,4 @@
+import { StyledText } from "@/components/StyledText";
 import { Text, View } from "react-native";
 
 export default function Home() {
@@ -9,7 +10,9 @@ export default function Home() {
         alignItems: "center",
       }}
     >
-      <Text>Welcome to home screen!</Text>
+     <StyledText style={{ fontSize: 16 }}>
+      Bem-vindo ao EPesportes!
+    </StyledText>
     </View>
   );
 }
