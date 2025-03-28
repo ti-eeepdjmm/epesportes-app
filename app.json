@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "epesportes-frontend",
-    "slug": "epesportes-frontend",
+    "slug": "epesportes",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -36,6 +36,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "0786a6ad-75ea-4df8-bbb4-e191de91bc28"
+      }
+    },
+    "owner": "rickalves"
   }
 }
