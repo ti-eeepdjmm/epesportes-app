@@ -1,6 +1,6 @@
 import { Text, View } from "react-native";
 
-export default function Home() {
+export default function Resenha() {
   return (
     <View
       style={{
@@ -9,7 +9,7 @@ export default function Home() {
         alignItems: "center",
       }}
     >
-      <Text>Welcome to home screen!</Text>
+      <Text>Welcome to resenha screen!</Text>
     </View>
   );
 }
