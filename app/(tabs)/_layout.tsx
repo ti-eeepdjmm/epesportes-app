@@ -16,11 +16,13 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: theme.greenBackground,
           borderTopColor: theme.white || '#ccc',
-          height: 60,
+          height: 72,
+          paddingTop: 12,
         },
         tabBarLabelStyle: {
           fontSize: 12,
           fontFamily:'Poppins_400Regular',
+          color: "white",
         },
       }}
     >
@@ -32,17 +34,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="resenha"
-        options={{
-          title: 'Resenha',
-          tabBarIcon: ({ focused }) => <TabIcon name="resenha" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
         name="games"
         options={{
           title: 'Jogos',
           tabBarIcon: ({ focused }) => <TabIcon name="games" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="resenha"
+        options={{
+          title: 'Resenha',
+          tabBarIcon: ({ focused }) => <TabIcon name="resenha" focused={focused} />,
         }}
       />
       <Tabs.Screen
