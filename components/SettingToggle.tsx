@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Switch } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import { useThemeContext } from '@/context/ThemeContext';
+import { CustomSwitch } from './CustomSwitch';
 
 type Props = {
   label: string;
@@ -26,16 +27,7 @@ export function SettingToggle({ label, description, value, onChange, icon }: Pro
         )}
       </View>
 
-      <Switch 
-        value={value} 
-        onValueChange={onChange} 
-        trackColor={{
-            false: currentTheme.gray,
-            true:theme === 'dark' && value? currentTheme.black : currentTheme.greenBackground,
-          }}
-        thumbColor={currentTheme.white} // ou algo como '#fff'
-        ios_backgroundColor={currentTheme.gray}
-    />
+      <CustomSwitch value={value} onChange={onChange} />
     </View>
   );
 }
@@ -43,7 +35,7 @@ export function SettingToggle({ label, description, value, onChange, icon }: Pro
 const styles = StyleSheet.create({
   container: {
     paddingVertical: 16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,

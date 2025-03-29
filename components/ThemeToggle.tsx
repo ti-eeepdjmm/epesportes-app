@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Switch, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useThemeContext } from '../context/ThemeContext';
 import { useTheme } from '../hooks/useTheme';
 import MoonIcon from './icons/MoonIcon';
+import { CustomSwitch } from './CustomSwitch';
 
 export function ThemeToggle() {
   const { theme, setTheme } = useThemeContext();
@@ -14,16 +15,9 @@ export function ThemeToggle() {
         <MoonIcon color={currentTheme.black} size={24} />
         <Text style={[styles.label, { color: currentTheme.black }]}>Modo Escuro</Text>
       </View>
-      <Switch
-        style={[{borderColor: currentTheme.white}]}
+      <CustomSwitch
         value={theme === 'dark'}
-        onValueChange={(val) => setTheme(val ? 'dark' : 'light')}
-        trackColor={{
-            false: currentTheme.gray,
-            true: currentTheme.black,
-          }}
-        thumbColor={ theme === 'dark'? currentTheme.white:currentTheme.white } // ou algo como '#fff'
-        ios_backgroundColor={currentTheme.black}
+        onChange={(val) => setTheme(val ? 'dark' : 'light')}
       />
     </View>
   );

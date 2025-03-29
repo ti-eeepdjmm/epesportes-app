@@ -5,12 +5,14 @@ import { useTheme } from "@/hooks/useTheme";
 import { View } from "react-native";
 import BellIcon from '../../components/icons/BellIcon';
 import { useState } from "react";
+import { CustomSwitch } from '../../components/CustomSwitch';
 
 
 
-export default function Home() {
+export default function Profile() {
   const theme = useTheme();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
+  const [enabled, setEnabled] = useState(false);
 
   return (
     <View
@@ -32,6 +34,13 @@ export default function Home() {
         onChange={setNotificationsEnabled}
         icon={<BellIcon size={24} color={theme.black} />}
       />
+      <SettingToggle
+        label="Notificações"
+        value={enabled}
+        onChange={setEnabled}
+        icon={<BellIcon size={24} color={theme.black} />}
+      />
+      
     </View>
   );
 }

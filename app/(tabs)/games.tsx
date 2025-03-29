@@ -1,15 +1,24 @@
-import { Text, View } from "react-native";
+
+import { StyledText } from "@/components/StyledText";
+import { useTheme } from "@/hooks/useTheme";
+import { View } from "react-native";
 
 export default function Games() {
+  const theme = useTheme();
+
   return (
     <View
       style={{
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
+        backgroundColor: theme.grayBackground,
+
       }}
     >
-      <Text>Welcome to games screen!</Text>
+      <StyledText style={{ fontSize: 16 }}>
+        Tela de Jogos
+      </StyledText>
     </View>
   );
 }
