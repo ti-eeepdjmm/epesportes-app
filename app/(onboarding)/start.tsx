@@ -11,6 +11,7 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { router } from 'expo-router';
 import WaveBackground from '@/components/WaveBackground';
 import AnimatedLottie from '@/components/AnimatedLottie';
+import { Logo } from '@/components/Logo';
 
 export default function OnboardStart() {
   const theme = useTheme();
@@ -21,7 +22,11 @@ export default function OnboardStart() {
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [{ translateY: translateY.value }],
-    gap: 64,
+    alignItems:'center',
+    justifyContent:'flex-start',
+    height: '100%',
+    paddingBottom:24,
+    gap:64,
   }));
 
   useEffect(() => {
@@ -43,6 +48,7 @@ export default function OnboardStart() {
           </Text>
           <PrimaryButton title="Começar" onPress={() => router.push('/(onboarding)/first-step')} />
         </Animated.View>
+        <Logo styles={{position:'absolute', bottom: 24}} />
       </Animated.View>
     </View>
   );

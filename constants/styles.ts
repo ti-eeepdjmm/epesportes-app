@@ -9,7 +9,7 @@ export const globalStyles = StyleSheet.create({
   },
   containerOnboard: {
     flex: 1,
-    paddingTop: 40,
+    paddingTop: 32,
     justifyContent: 'flex-start',
     alignItems: 'center',
   },

@@ -11,6 +11,7 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { router } from 'expo-router';
 import WaveBackground from '@/components/WaveBackground';
 import AnimatedLottie from '@/components/AnimatedLottie';
+import { Logo } from '@/components/Logo';
 
 export default function OnboardNext() {
   const theme = useTheme();
@@ -21,7 +22,11 @@ export default function OnboardNext() {
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [{ translateY: translateY.value }],
-    gap: 64,
+    alignItems:'center',
+    justifyContent:'flex-start',
+    height: '100%',
+    paddingBottom:24,
+    gap:24,
   }));
 
   useEffect(() => {
@@ -33,7 +38,11 @@ export default function OnboardNext() {
     <View style={[globalStyles.containerOnboard, { backgroundColor: theme.white }]}>
       <WaveBackground />
       <Animated.View style={animatedStyle}>
-        <AnimatedLottie source={require('../../assets/animations/volei.json')} />
+        <AnimatedLottie 
+          source={require('../../assets/animations/volei.json')}
+          height={350} 
+          width={350} 
+        />
         <Animated.View>
           <Text style={[globalStyles.title, { color: theme.greenDetail }]}>
           Chegou a hora!
@@ -43,6 +52,7 @@ export default function OnboardNext() {
           </Text>
           <PrimaryButton title="Criar Conta" onPress={() => router.push('/(onboarding)/start')} />
         </Animated.View>
+        <Logo styles={{position:'absolute', bottom: 24}} />
       </Animated.View>
     </View>
   );
