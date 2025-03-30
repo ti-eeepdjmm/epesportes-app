@@ -40,7 +40,7 @@ export default function OnboardStart() {
       <Animated.View style={animatedStyle}>
         <AnimatedLottie source={require('../../assets/animations/futebol.json')} />
         <Animated.View>
-          <Text style={[globalStyles.title, { color: theme.greenDetail }]}>
+          <Text style={[globalStyles.title, { color: theme.greenLight }]}>
             Bem vindo!
           </Text>
           <Text style={[globalStyles.paragraph, { color: theme.black }]}>

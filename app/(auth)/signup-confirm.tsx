@@ -1,6 +1,6 @@
 import { Text, View } from "react-native";
 
-export default function RegisterStart() {
+export default function SignUpConfirm() {
   return (
     <View
       style={{
@@ -9,7 +9,7 @@ export default function RegisterStart() {
         alignItems: "center",
       }}
     >
-      <Text>Welcome to Register screen!</Text>
+      <Text>sign Confirm</Text>
     </View>
   );
 }
