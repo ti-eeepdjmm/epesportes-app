@@ -1,10 +1,11 @@
-import { StyledText } from "@/components/StyledText"
+
+import { StyledText } from "@/components/StyledText";
 import { useTheme } from "@/hooks/useTheme";
 import { View } from "react-native";
-import { useState } from "react";
 
-export default function Home() {
+export default function Resenha() {
   const theme = useTheme();
+
   return (
     <View
       style={{
@@ -16,7 +17,7 @@ export default function Home() {
       }}
     >
       <StyledText style={{ fontSize: 16 }}>
-        Bem-vindo ao EPesportes!
+        Tela de Resenha
       </StyledText>
     </View>
   );
