@@ -55,7 +55,8 @@
       },
       "eas": {
         "projectId": "0786a6ad-75ea-4df8-bbb4-e191de91bc28"
-      }
+      },
+      "API_URL": "process.env.EXPO_PUBLIC_API_URL"
     },
     "owner": "rickalves"
   }
