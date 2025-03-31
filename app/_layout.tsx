@@ -4,7 +4,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
-import { ThemeProvider } from '@/context/ThemeContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { SocketProvider } from '@/contexts/SocketContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -15,7 +17,7 @@ export default function RootLayout() {
     Poppins_700Bold,
     Poppins_500Medium,
   });
-
+  const { user } = useAuth(); // Ex: user.id
   const colorScheme = useColorScheme();
 
   useEffect(() => {
@@ -30,9 +32,12 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      {/* Comportamento automático com tema do sistema */}
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <Slot />
+      <AuthProvider>
+      <SocketProvider userId={user?.id ?? ''}>
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        <Slot />
+      </SocketProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
