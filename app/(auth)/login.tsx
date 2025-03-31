@@ -2,6 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import api from '@/utils/api';
+import { router } from 'expo-router';
 interface User {
   id: string;
   user_metadata: {
@@ -34,6 +35,7 @@ export default function Login() {
         });
 
         console.log('✅ Login bem-sucedido:');
+        router.replace('/(tabs)');
       } catch (error) {
         console.error('Erro ao logar:', error);
       }
