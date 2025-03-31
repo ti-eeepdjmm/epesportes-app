@@ -13,7 +13,7 @@ interface ButtonProps extends TouchableOpacityProps {
 export function Button({ title, onPress, loading, icon, ...rest }: ButtonProps) {
   const theme = useTheme();
 
-  const styles = useMemo(() => StyleSheet.create({
+  const styles = StyleSheet.create({
     button: {
       backgroundColor: theme.greenBackground,
       borderRadius: 8,
@@ -24,14 +24,14 @@ export function Button({ title, onPress, loading, icon, ...rest }: ButtonProps) 
       flexDirection: 'row',
     },
     text: {
-      color: 'white',
+      color: theme.black,
       fontSize: 16,
       fontWeight: 'bold',
     },
     icon: {
       marginRight: 8,
     },
-  }), [theme]);
+  });
 
   return (
     <TouchableOpacity

@@ -10,6 +10,7 @@ import { StyledText } from '@/components/StyledText';
 import { useTheme } from '@/hooks/useTheme';
 
 import { router } from 'expo-router';
+import GoogleIcon from '@/components/icons/GoogleIcon';
 
 
 const signUpSchema = z.object({
@@ -42,9 +43,13 @@ export default function SignUpStart() {
       <StyledText style={styles.title}>Criar Conta</StyledText>
 
       {/* TODO: Botão Google */}
-      <TouchableOpacity style={[styles.googleButton, { backgroundColor: theme.greenBackground }]}>
-        <StyledText style={styles.googleText}>Criar Conta com Google</StyledText>
-      </TouchableOpacity>
+      <Button 
+        title="Criar conta com Google"
+        onPress={() => null}
+        loading={false}
+        style={{ marginTop: 16 }}
+        icon={<GoogleIcon />}
+      />
 
       <View style={styles.divider} />
 
