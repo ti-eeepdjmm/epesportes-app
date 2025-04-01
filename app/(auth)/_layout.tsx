@@ -1,15 +1,26 @@
 // app/(auth)/_layout.tsx
-import { Stack } from 'expo-router';
+import React, { useEffect } from 'react';
+import { Slot } from 'expo-router';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+} from 'react-native-reanimated';
 
 export default function AuthLayout() {
+  const opacity = useSharedValue(0);
+
+  const fadeStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  useEffect(() => {
+    opacity.value = withTiming(1, { duration: 400 });
+  }, []);
+
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false, // ou true, se quiser cabeçalho
-        animation: 'slide_from_right',
-      }}
-    >
-      {/* Todas as telas em (auth) serão envolvidas por essa Stack */}
-    </Stack>
+    <Animated.View style={[{ flex: 1 }, fadeStyle]}>
+      <Slot />
+    </Animated.View>
   );
 }

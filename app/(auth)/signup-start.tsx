@@ -1,83 +1,89 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 import { InputField } from '@/components/forms/InputField';
 import { Button } from '@/components/forms/Button';
+import { Separator } from '@/components/Separator';
 import { StyledText } from '@/components/StyledText';
 import { useTheme } from '@/hooks/useTheme';
-
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import GoogleIcon from '@/components/icons/GoogleIcon';
 
 
 const signUpSchema = z.object({
-  name: z.string().min(2, 'Digite um nome válido'),
-  email: z.string().email('E-mail inválido'),
-  password: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres'),
+  name: z.string().nonempty('O nome é obrigatório').min(2, 'Digite um nome válido'),
+  email: z.string().nonempty('O e-mail é obrigatório').email('E-mail inválido'),
+  password: z.string().nonempty('A senha é obrigatória').min(6, 'Mínimo de 6 caracteres'),
 });
 
 type SignUpFormData = z.infer<typeof signUpSchema>;
 
 export default function SignUpStart() {
   const theme = useTheme();
+  const router = useRouter();
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      padding: 24,
+      justifyContent: 'center',
+      backgroundColor: theme.white,
+    },
+    title: {
+      fontSize: 32,
+      textAlign: 'center',
+      marginBottom: 24,
+      color: theme.greenLight,
+    },
+  });
 
   const {
     control,
-    handleSubmit,
+    getValues,
+    trigger,
     formState: { isSubmitting },
   } = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+    },
   });
 
-  function onSubmit(data: SignUpFormData) {
-    // TODO: conectar ao backend
-    console.log('Dados do formulário:', data);
-    router.push('/signup-birthday'); // caminho relativo à pasta (auth)
+  async function onSubmit() {
+    const isValid = await trigger();
+
+    if (!isValid) return;
+
+    const data = getValues();
+    console.log(data);
+    router.push('/(auth)/signup-birthday');
   }
 
   return (
     <View style={styles.container}>
       <StyledText style={styles.title}>Criar Conta</StyledText>
 
-      {/* TODO: Botão Google */}
-      <Button 
-        title="Criar conta com Google"
-        onPress={() => null}
-        loading={false}
-        style={{ marginTop: 16 }}
+      <Button
+        title="Criar Conta com Google"
+        onPress={() => { }}
+        style={{ marginTop: 8 }}
         icon={<GoogleIcon />}
       />
 
-      <View style={styles.divider} />
+      <Separator />
 
-      <InputField
-        name="name"
-        label="Nome"
-        placeholder="Nome"
-        control={control}
-      />
-      <InputField
-        name="email"
-        label="Email"
-        placeholder="Email"
-        control={control}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <InputField
-        name="password"
-        label="Senha"
-        placeholder="Senha"
-        control={control}
-        secureTextEntry
-      />
+      <InputField name="name" label="Nome" placeholder="Nome" control={control} />
+      <InputField name="email" label="Email" placeholder="Email" control={control} keyboardType="email-address" />
+      <InputField name="password" label="Senha" placeholder="Senha" control={control} secureTextEntry />
 
       <Button
         title="Próximo"
-        onPress={handleSubmit(onSubmit)}
+        onPress={onSubmit}
         loading={isSubmitting}
         style={{ marginTop: 16 }}
       />
@@ -85,30 +91,4 @@ export default function SignUpStart() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'center',
-    backgroundColor: 'white',
-  },
-  title: {
-    fontSize: 20,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  googleButton: {
-    padding: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  googleText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#ddd',
-    marginVertical: 24,
-  },
-});
+

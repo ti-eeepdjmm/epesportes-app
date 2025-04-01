@@ -1,50 +1,61 @@
-// components/base/Button.tsx
-import React, { ReactNode, useMemo } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View, TouchableOpacityProps } from 'react-native';
+// components/Base/Button.tsx
+import React from 'react';
+import {
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+  ViewStyle,
+  View,
+} from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 
-interface ButtonProps extends TouchableOpacityProps {
+interface ButtonProps {
   title: string;
   onPress: () => void;
   loading?: boolean;
-  icon?: ReactNode;
+  style?: ViewStyle;
+  icon?: React.ReactNode; // ✅ Novo: suporte a ícone
 }
 
-export function Button({ title, onPress, loading, icon, ...rest }: ButtonProps) {
+export function Button({ title, onPress, loading, style, icon }: ButtonProps) {
   const theme = useTheme();
 
   const styles = StyleSheet.create({
     button: {
       backgroundColor: theme.greenBackground,
+      paddingVertical: 8,
+      paddingHorizontal: 24,
       borderRadius: 8,
-      paddingVertical: 12,
-      paddingHorizontal: 16,
-      alignItems: 'center',
+      flexDirection: 'row', // ✅ Para alinhar texto + ícone
       justifyContent: 'center',
-      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
     },
     text: {
-      color: theme.black,
+      color: 'white',
       fontSize: 16,
-      fontWeight: 'bold',
+      fontFamily: 'Poppins_500Medium',
+      alignItems: 'center',
     },
-    icon: {
-      marginRight: 8,
+    iconWrapper: {
+      justifyContent: 'center',
+      alignItems: 'center',
     },
   });
 
   return (
     <TouchableOpacity
-      style={styles.button}
+      style={[styles.button, style]}
       onPress={onPress}
       disabled={loading}
-      {...rest}
+      activeOpacity={0.8}
     >
       {loading ? (
-        <ActivityIndicator color="#fff" />
+        <ActivityIndicator color="white" />
       ) : (
         <>
-          {icon && <View style={styles.icon}>{icon}</View>}
+          {!!icon && <View style={styles.iconWrapper}>{icon}</View>}
           <Text style={styles.text}>{title}</Text>
         </>
       )}
