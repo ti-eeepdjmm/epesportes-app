@@ -1,4 +1,5 @@
 // app/(auth)/_layout.tsx
+
 import React, { useEffect } from 'react';
 import { Slot } from 'expo-router';
 import Animated, {
@@ -6,7 +7,13 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from 'react-native-reanimated';
-import { SignUpProvider } from '@/contexts/SignUpContext';
+import {
+  Platform,
+  KeyboardAvoidingView,
+  SafeAreaView,
+  StyleSheet,
+  ScrollView,
+} from 'react-native';
 
 export default function AuthLayout() {
   const opacity = useSharedValue(0);
@@ -20,10 +27,31 @@ export default function AuthLayout() {
   }, []);
 
   return (
-    <Animated.View style={[{ flex: 1 }, fadeStyle]}>
-      <SignUpProvider>
-        <Slot />
-      </SignUpProvider>
-    </Animated.View>
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Animated.View style={[styles.flex, fadeStyle]}>
+            <Slot />
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: 'white', // ajuste se seu app usar tema escuro
+  },
+  flex: {
+    flex: 1,
+  },
+});
