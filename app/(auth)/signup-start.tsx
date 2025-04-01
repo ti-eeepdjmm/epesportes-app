@@ -9,9 +9,10 @@ import { Button } from '@/components/forms/Button';
 import { Separator } from '@/components/Separator';
 import { StyledText } from '@/components/StyledText';
 import { useTheme } from '@/hooks/useTheme';
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import GoogleIcon from '@/components/icons/GoogleIcon';
 import { useSignUp } from '@/contexts/SignUpContext';
+import { GoogleOAuthButton } from '@/components/GoogleAuthButton';
 
 
 const signUpSchema = z.object({
@@ -24,7 +25,6 @@ type SignUpFormData = z.infer<typeof signUpSchema>;
 
 export default function SignUpStart() {
   const theme = useTheme();
-  const router = useRouter();
   const { updateData } = useSignUp();
 
   const styles = StyleSheet.create({
@@ -71,12 +71,7 @@ export default function SignUpStart() {
     <View style={styles.container}>
       <StyledText style={styles.title}>Criar Conta</StyledText>
 
-      <Button
-        title="Criar Conta com Google"
-        onPress={() => { }}
-        style={{ marginTop: 8 }}
-        icon={<GoogleIcon />}
-      />
+      <GoogleOAuthButton />
 
       <Separator />
 
