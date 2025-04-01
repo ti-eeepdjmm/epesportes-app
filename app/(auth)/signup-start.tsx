@@ -11,6 +11,7 @@ import { StyledText } from '@/components/StyledText';
 import { useTheme } from '@/hooks/useTheme';
 import { useRouter } from 'expo-router';
 import GoogleIcon from '@/components/icons/GoogleIcon';
+import { useSignUp } from '@/contexts/SignUpContext';
 
 
 const signUpSchema = z.object({
@@ -24,6 +25,7 @@ type SignUpFormData = z.infer<typeof signUpSchema>;
 export default function SignUpStart() {
   const theme = useTheme();
   const router = useRouter();
+  const { updateData } = useSignUp();
 
   const styles = StyleSheet.create({
     container: {
@@ -60,6 +62,7 @@ export default function SignUpStart() {
     if (!isValid) return;
 
     const data = getValues();
+    updateData(data); // <-- Salva os dados temporariamente
     console.log(data);
     router.push('/(auth)/signup-birthday');
   }

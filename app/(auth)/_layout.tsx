@@ -6,6 +6,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from 'react-native-reanimated';
+import { SignUpProvider } from '@/contexts/SignUpContext';
 
 export default function AuthLayout() {
   const opacity = useSharedValue(0);
@@ -20,7 +21,9 @@ export default function AuthLayout() {
 
   return (
     <Animated.View style={[{ flex: 1 }, fadeStyle]}>
-      <Slot />
+      <SignUpProvider>
+        <Slot />
+      </SignUpProvider>
     </Animated.View>
   );
 }
