@@ -1,54 +1,56 @@
-// app/callback.tsx
 import { useEffect } from 'react';
-import { router } from 'expo-router';
-import { useSignUp } from '@/contexts/SignUpContext';
+import { useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
 import api from '@/utils/api';
-import { AppLoader } from '@/components/AppLoader';
+import { useSignUp } from '@/contexts/SignUpContext';
 
-export default function Callback() {
-  const { updateData } = useSignUp();
+export default function CallbackScreen() {
+  const { updateData, reset } = useSignUp();
+  const router = useRouter();
 
   useEffect(() => {
-    async function handleCallback() {
-      // Pega a hash completa da URL
-      const hash = window?.location?.hash;
+    const handleAuth = async () => {
+      const url = await Linking.getInitialURL();
 
-      if (!hash) return;
+      if (!url || !url.includes('#')) {
+        console.error('URL inválida ou sem fragmento');
+        return;
+      }
 
-      const params = new URLSearchParams(hash.replace('#', ''));
+      const fragment = url.split('#')[1];
+      const accessToken = new URLSearchParams(fragment).get('access_token');
 
-      const access_token = params.get('access_token');
-      const id_token = params.get('id_token');
-      const provider = 'google';
-
-      if (!id_token) {
-        console.error('ID token não encontrado no callback');
+      if (!accessToken) {
+        console.error('access_token não encontrado na URL');
         return;
       }
 
       try {
-        // Envia para o backend fazer login com Supabase
-        const { data } = await api.post(`/auth/login/token`, {
-          id_token,
-          provider,
-        });
+        const res = await api.post(
+          '/auth/me',
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        );
 
-        const { user } = data;
-
+        const { user } = res.data;
+        console.log(user)
         updateData({
-          name: user.user_metadata?.full_name,
+          name: user.user_metadata.full_name,
           email: user.email,
         });
 
-        // Redireciona para a próxima etapa do cadastro
         router.replace('/(auth)/signup-birthday');
-      } catch (error) {
-        console.error('Erro ao processar callback:', error);
+      } catch (err) {
+        console.error('Erro ao autenticar com backend:', err);
       }
-    }
+    };
 
-    handleCallback();
+    handleAuth();
   }, []);
 
-  return <AppLoader />; // Ou <ActivityIndicator />
+  return null;
 }

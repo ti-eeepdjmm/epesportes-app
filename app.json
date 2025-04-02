@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
-    "deepLinks": ["auth/callback"],
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -23,18 +22,7 @@
         "monochromeImage": "./assets/icons/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.rickalves.epesportes",
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "data": {
-            "scheme": "myapp",
-            "host": "auth",
-            "pathPrefix": "/callback"
-          },
-          "category": ["BROWSABLE", "DEFAULT"]
-        }
-      ]
+      "package": "com.rickalves.epesportes"
     },
     "web": {
       "bundler": "metro",
