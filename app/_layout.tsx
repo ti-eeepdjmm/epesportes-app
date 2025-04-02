@@ -9,7 +9,7 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { useColorScheme, View, ActivityIndicator } from 'react-native';
+import { useColorScheme } from 'react-native';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { SocketProvider } from '@/contexts/SocketContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';

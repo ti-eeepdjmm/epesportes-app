@@ -13,7 +13,7 @@ interface User {
 }
 
 export default function Login() {
-  const { signIn } = useAuth();
+  const { signIn, signOut } = useAuth();
   const [ user, setUser ] = useState<User>();
 
   useEffect(() => {
@@ -23,11 +23,12 @@ export default function Login() {
           email: 'henryjsalves@gmail.com',
           password: '123456',
         };
+        await signOut();
 
         const response = await api.post('/auth/login', { email, password });
         const data = response.data;
         setUser(data.user);
-
+       
         await signIn(data.session.access_token, {
           id: data.user.id,
           name: data.user.user_metadata.full_name,

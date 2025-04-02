@@ -4,7 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 
 // Cria uma instância do Axios com a base da API
 const api = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:3000', // ou sua URL da API
+  baseURL: process.env.EXPO_PUBLIC_API_URL, // ou sua URL da API
   timeout: 10000,
 });
 

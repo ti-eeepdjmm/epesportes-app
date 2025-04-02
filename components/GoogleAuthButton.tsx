@@ -12,13 +12,9 @@ const { updateData } = useSignUp();
 
   async function handleGoogleSignUp() {
     try {
-      const urlTeste = `${process.env.EXPO_PUBLIC_API_URL}/auth/login/google`
+    
       // 1. Solicita a URL de login com Google ao backend
-      console.log("url", urlTeste)
-      const { data } = await api.get(`${process.env.EXPO_PUBLIC_API_URL}/auth/login/google`);
-      console.log("data.url", data.url)
-     
-      
+      const { data } = await api.get(`/auth/login/google`);
 
       // 2. Abre o navegador com a URL de autenticação
       const result = await WebBrowser.openAuthSessionAsync(data.url, process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_URL);
