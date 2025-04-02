@@ -2,56 +2,62 @@ import { Button } from '@/components/forms/Button';
 import { useSignUp } from '@/contexts/SignUpContext';
 import api from '@/utils/api';
 import { router } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import GoogleIcon from './icons/GoogleIcon';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+import { useEffect } from 'react';
 
+WebBrowser.maybeCompleteAuthSession(); // Finaliza a sessão do navegador
 
 export function GoogleOAuthButton() {
-  
-const { updateData } = useSignUp();
+  const { updateData } = useSignUp();
 
-  async function handleGoogleSignUp() {
-    try {
-    
-      // 1. Solicita a URL de login com Google ao backend
-      const { data } = await api.get(`/auth/login/google`);
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+  });
 
-      // 2. Abre o navegador com a URL de autenticação
-      const result = await WebBrowser.openAuthSessionAsync(data.url, process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_URL);
+  useEffect(() => {
+    const handleGoogleAuth = async () => {
+      if (response?.type === 'success') {
+        const id_token = response.authentication?.idToken;
 
-      // 3. Verifica se o usuário retornou com sucesso e extrai o token da URL
-      if (result.type === 'success' && result.url) {
-        const url = new URL(result.url);
-        const id_token = url.searchParams.get('id_token');
+        if (!id_token) {
+          console.error('ID Token não encontrado');
+          return;
+        }
 
-        if (!id_token) throw new Error('ID Token não encontrado na URL');
+        try {
+          // Envia o ID Token para o backend
+          const res = await api.post('/auth/login/token', {
+            id_token,
+            provider: 'google',
+          });
 
-        // 4. Envia o token para o backend fazer login no Supabase
-        const res = await api.post('/auth/login/token', {
-          id_token,
-          provider: 'google',
-        });
+          const { user } = res.data;
 
-        const { user } = res.data;
+          // Atualiza o contexto de cadastro
+          updateData({
+            name: user.user_metadata.full_name,
+            email: user.email,
+          });
 
-        // 5. Atualiza o contexto com os dados do usuário
-        updateData({
-          name: user.user_metadata.full_name,
-          email: user.email,
-        });
-
-        // 6. Redireciona para próxima etapa
-        router.push('/(auth)/signup-birthday');
+          // Redireciona para próxima etapa
+          router.push('/(auth)/signup-birthday');
+        } catch (err) {
+          console.error('Erro ao autenticar com backend:', err);
+        }
       }
-    } catch (error) {
-      console.error('Erro durante login com Google:', error);
-    }
-  }
+    };
+
+    handleGoogleAuth();
+  }, [response]);
 
   return (
     <Button
       title="Cadastrar com Google"
-      onPress={handleGoogleSignUp}
+      onPress={() => promptAsync()}
       icon={<GoogleIcon />}
     />
   );
