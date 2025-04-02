@@ -10,7 +10,6 @@ import { Separator } from '@/components/Separator';
 import { StyledText } from '@/components/StyledText';
 import { useTheme } from '@/hooks/useTheme';
 import { router } from 'expo-router';
-import GoogleIcon from '@/components/icons/GoogleIcon';
 import { useSignUp } from '@/contexts/SignUpContext';
 import { GoogleOAuthButton } from '@/components/GoogleAuthButton';
 
@@ -70,15 +69,11 @@ export default function SignUpStart() {
   return (
     <View style={styles.container}>
       <StyledText style={styles.title}>Criar Conta</StyledText>
-
       <GoogleOAuthButton />
-
       <Separator />
-
       <InputField name="name" label="Nome" placeholder="Nome" control={control} />
       <InputField name="email" label="Email" placeholder="Email" control={control} keyboardType="email-address" />
       <InputField name="password" label="Senha" placeholder="Senha" control={control} secureTextEntry />
-
       <Button
         title="Próximo"
         onPress={onSubmit}

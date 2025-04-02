@@ -5,7 +5,8 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "app",
+    "scheme": "myapp",
+    "deepLinks": ["auth/callback"],
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

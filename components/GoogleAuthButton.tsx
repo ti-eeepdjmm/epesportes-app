@@ -3,62 +3,84 @@ import { useSignUp } from '@/contexts/SignUpContext';
 import api from '@/utils/api';
 import { router } from 'expo-router';
 import GoogleIcon from './icons/GoogleIcon';
-import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-import { useEffect } from 'react';
-
-WebBrowser.maybeCompleteAuthSession(); // Finaliza a sessão do navegador
+import * as Linking from 'expo-linking';
+import { useEffect, useState } from 'react';
 
 export function GoogleOAuthButton() {
-  const { updateData } = useSignUp();
-
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-  });
+  const { updateData, reset } = useSignUp();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    const handleGoogleAuth = async () => {
-      if (response?.type === 'success') {
-        const id_token = response.authentication?.idToken;
+    const handleDeepLink = async (event: { url: string }) => {
+      const url = event.url;
+      const fragment = url.split('#')[1]; // após #
+      const params = new URLSearchParams(fragment);
+      const accessToken = params.get('access_token');
 
-        if (!id_token) {
-          console.error('ID Token não encontrado');
-          return;
-        }
+      if (!accessToken) {
+        console.error('Token de acesso não encontrado na URL de callback');
+        return;
+      }
 
-        try {
-          // Envia o ID Token para o backend
-          const res = await api.post('/auth/login/token', {
-            id_token,
-            provider: 'google',
-          });
+      try {
+        setIsProcessing(true);
+        const res = await api.post(
+          '/auth/me',
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        );
 
-          const { user } = res.data;
+        const { user } = res.data;
+        console.log(user);
+        reset();
+        updateData({
+          name: user.user_metadata.full_name,
+          email: user.email,
+        });
 
-          // Atualiza o contexto de cadastro
-          updateData({
-            name: user.user_metadata.full_name,
-            email: user.email,
-          });
-
-          // Redireciona para próxima etapa
-          router.push('/(auth)/signup-birthday');
-        } catch (err) {
-          console.error('Erro ao autenticar com backend:', err);
-        }
+        router.push('/(auth)/signup-birthday');
+      } catch (err) {
+        console.error('Erro ao autenticar com backend:', err);
+      } finally {
+        setIsProcessing(false);
       }
     };
 
-    handleGoogleAuth();
-  }, [response]);
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  const handleLogin = async () => {
+    try {
+      setIsProcessing(true);
+      const { data } = await api.get('/auth/login/google'); // endpoint do backend
+      const loginUrl = data.url;
+
+      if (!loginUrl) {
+        throw new Error('URL de login não encontrada');
+      }
+
+      await WebBrowser.openBrowserAsync(loginUrl);
+    } catch (err) {
+      console.error('Erro ao iniciar login com Google:', err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <Button
       title="Cadastrar com Google"
-      onPress={() => promptAsync()}
+      onPress={handleLogin}
       icon={<GoogleIcon />}
+      disabled={isProcessing}
     />
   );
 }

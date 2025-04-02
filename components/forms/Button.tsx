@@ -13,6 +13,7 @@ import { useTheme } from '@/hooks/useTheme';
 interface ButtonProps {
   title: string;
   onPress: () => void;
+  disabled?: boolean;
   loading?: boolean;
   style?: ViewStyle;
   icon?: React.ReactNode; // ✅ Novo: suporte a ícone

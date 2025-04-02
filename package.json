@@ -51,7 +51,6 @@
     "react-native-webview": "13.12.5",
     "socket.io-client": "^4.8.1",
     "supabase": "^2.20.5",
-    "undefined": "@C:/Program Files/Git/lib/supabase",
     "zod": "^3.24.2"
   },
   "devDependencies": {
