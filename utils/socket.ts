@@ -2,7 +2,7 @@
 import { io, Socket } from 'socket.io-client';
 
 export const createSocketConnection = (userId: string): Socket => {
-  const socket = io('http://10.0.2.2:3000', {
+  const socket = io(process.env.EXPO_PUBLIC_API_URL, {
     transports: ['websocket'],
   });
 
