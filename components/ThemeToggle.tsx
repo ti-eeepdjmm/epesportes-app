@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useThemeContext } from '../context/ThemeContext';
+import { useThemeContext } from '../contexts/ThemeContext';
 import { useTheme } from '../hooks/useTheme';
 import MoonIcon from './icons/MoonIcon';
 import { CustomSwitch } from './CustomSwitch';

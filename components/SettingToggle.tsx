@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Switch } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
-import { useThemeContext } from '@/context/ThemeContext';
+import { useThemeContext } from '@/contexts/ThemeContext';
 import { CustomSwitch } from './CustomSwitch';
 
 type Props = {

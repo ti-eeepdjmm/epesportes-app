@@ -1,61 +1,65 @@
-// components/forms/InputField.tsx
-import React from 'react';
-import {
-  TextInput,
-  View,
-  Text,
-  StyleSheet,
-  TextInputProps,
-} from 'react-native';
-import { Controller, Control } from 'react-hook-form';
+import React, { useState } from 'react';
+import { View, TextInput, Text, StyleSheet } from 'react-native';
+import { useController, Control } from 'react-hook-form';
 import { useTheme } from '@/hooks/useTheme';
 
-interface InputFieldProps extends TextInputProps {
+interface InputFieldProps {
   name: string;
+  label: string;
+  placeholder?: string;
   control: Control<any>;
-  label?: string;
+  secureTextEntry?: boolean;
+  keyboardType?: 'default' | 'email-address' | 'numeric';
 }
 
 export function InputField({
   name,
-  control,
   label,
-  style,
-  ...props
+  placeholder,
+  control,
+  secureTextEntry,
+  keyboardType = 'default',
 }: InputFieldProps) {
   const theme = useTheme();
+  const [isFocused, setIsFocused] = useState(false);
+
+  const {
+    field: { onChange, onBlur, value },
+    fieldState: { error },
+  } = useController({ name, control });
 
   return (
-    <Controller
-      control={control}
-      name={name}
-      render={({ field: { onChange, onBlur, value }, fieldState: { error } }) => (
-        <View style={{ marginBottom: 16 }}>
-          {label && <Text style={styles(theme).label}>{label}</Text>}
-          <TextInput
-            style={[
-              styles(theme).input,
-              !!error && styles(theme).errorInput,
-              style,
-            ]}
-            placeholderTextColor={theme.gray}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            value={value}
-            {...props}
-          />
-          {!!error && <Text style={styles(theme).errorText}>{error.message}</Text>}
-        </View>
+    <View style={{ marginBottom: 16 }}>
+      <Text style={[styles(theme).label]}>{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChange}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => {
+          setIsFocused(false);
+          onBlur(); // importante para RHF saber que perdeu foco
+        }}
+        placeholder={placeholder}
+        placeholderTextColor={theme.gray}
+        secureTextEntry={secureTextEntry}
+        keyboardType={keyboardType}
+        style={[
+          styles(theme).input,
+          isFocused && styles(theme).focusedInput,
+          error && styles(theme).errorInput,
+        ]}
+      />
+      {error?.message && (
+        <Text style={styles(theme).errorText}>{error.message}</Text>
       )}
-    />
+    </View>
   );
 }
 
 const styles = (theme: any) =>
   StyleSheet.create({
     label: {
-      fontFamily: 'Poppins_500Medium',
-      fontSize: 14,
+      fontSize: 16,
       color: theme.black,
       marginBottom: 4,
     },
@@ -66,6 +70,9 @@ const styles = (theme: any) =>
       padding: 12,
       fontSize: 16,
       color: theme.black,
+    },
+    focusedInput: {
+      borderColor: theme.greenLight, // borda verde ao focar
     },
     errorInput: {
       borderColor: theme.error,

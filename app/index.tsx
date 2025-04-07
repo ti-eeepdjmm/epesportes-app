@@ -9,9 +9,9 @@ export default function StartApp() {
     async function check() {
       const registered = await isUserRegistered();
       if (registered) {
-        router.replace('./(auth)/login');
+        router.replace('/(auth)/login');
       } else {
-        router.replace('./(onboarding)/start'); // sua tela inicial de boas-vindas
+        router.replace('/(onboarding)/start'); // sua tela inicial de boas-vindas
       }
     }
     check();

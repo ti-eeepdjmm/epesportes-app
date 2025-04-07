@@ -1,4 +1,4 @@
-import { useThemeContext } from '../context/ThemeContext';
+import { useThemeContext } from '../contexts/ThemeContext';
 import { colors } from '../constants/theme';
 
 export function useTheme() {
