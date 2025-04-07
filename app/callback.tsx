@@ -11,6 +11,7 @@ export default function CallbackScreen() {
   useEffect(() => {
     const handleAuth = async () => {
       const url = await Linking.getInitialURL();
+      console.log(`URL: ${url}`)
 
       if (!url || !url.includes('#')) {
         console.error('URL inválida ou sem fragmento');
