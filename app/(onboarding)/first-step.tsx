@@ -44,13 +44,13 @@ export default function OnboardNext() {
           width={350} 
         />
         <Animated.View>
-          <Text style={[globalStyles.title, { color: theme.greenDetail }]}>
+          <Text style={[globalStyles.title, { color: theme.greenLight }]}>
           Chegou a hora!
           </Text>
           <Text style={[globalStyles.paragraph, { color: theme.black }]}>
           Mergulhe no universo dos esportes!
           </Text>
-          <PrimaryButton title="Criar Conta" onPress={() => router.push('/(onboarding)/start')} />
+          <PrimaryButton title="Criar Conta" onPress={() => router.push('/(auth)/signup-start')} />
         </Animated.View>
         <Logo styles={{position:'absolute', bottom: 24}} />
       </Animated.View>

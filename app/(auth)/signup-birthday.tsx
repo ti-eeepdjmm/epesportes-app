@@ -1,6 +1,6 @@
 import { Text, View } from "react-native";
 
-export default function RegisterBirthday() {
+export default function SignUpBirthdate() {
   return (
     <View
       style={{
@@ -9,7 +9,7 @@ export default function RegisterBirthday() {
         alignItems: "center",
       }}
     >
-      <Text>Welcome to Register screen!</Text>
+      <Text>SignUp Birth!</Text>
     </View>
   );
 }

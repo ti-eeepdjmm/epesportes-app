@@ -40,7 +40,7 @@ export function CustomSwitch({ value, onChange, width = 36, height = 20 }: Props
         {
           backgroundColor: anim.interpolate({
             inputRange: [0, 1],
-            outputRange: [theme.gray, theme.greenDetail],
+            outputRange: [theme.gray, theme.greenLight],
           }),
           width,
           height,
