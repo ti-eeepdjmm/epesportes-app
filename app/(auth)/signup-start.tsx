@@ -6,12 +6,11 @@ import { z } from 'zod';
 
 import { InputField } from '@/components/forms/InputField';
 import { Button } from '@/components/forms/Button';
-import { Separator } from '@/components/Separator';
 import { StyledText } from '@/components/StyledText';
 import { useTheme } from '@/hooks/useTheme';
 import { router } from 'expo-router';
 import { useSignUp } from '@/contexts/SignUpContext';
-import { GoogleOAuthButton } from '@/components/GoogleAuthButton';
+
 
 
 const signUpSchema = z.object({
@@ -24,7 +23,7 @@ type SignUpFormData = z.infer<typeof signUpSchema>;
 
 export default function SignUpStart() {
   const theme = useTheme();
-  const { updateData } = useSignUp();
+  const { updateData, data } = useSignUp();
 
   const styles = StyleSheet.create({
     container: {
@@ -57,20 +56,17 @@ export default function SignUpStart() {
 
   async function onSubmit() {
     const isValid = await trigger();
-
+ 
     if (!isValid) return;
-
-    const data = getValues();
-    updateData(data); // <-- Salva os dados temporariamente
-    console.log(data);
+    const formData = getValues();
+    updateData(formData); // <-- Salva os dados temporariamente no context
+    console.log('Dados do formulário:', formData);
     router.push('/(auth)/signup-birthday');
   }
 
   return (
     <View style={styles.container}>
       <StyledText style={styles.title}>Criar Conta</StyledText>
-      <GoogleOAuthButton />
-      <Separator />
       <InputField name="name" label="Nome" placeholder="Nome" control={control} />
       <InputField name="email" label="Email" placeholder="Email" control={control} keyboardType="email-address" />
       <InputField name="password" label="Senha" placeholder="Senha" control={control} secureTextEntry />

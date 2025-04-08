@@ -14,6 +14,8 @@ import {
   StyleSheet,
   ScrollView,
 } from 'react-native';
+import { SignUpProvider } from '@/contexts/SignUpContext'; // 👈 IMPORTANTE
+import { StatusBar } from 'expo-status-bar';
 
 export default function AuthLayout() {
   const opacity = useSharedValue(0);
@@ -27,29 +29,32 @@ export default function AuthLayout() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
-      >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
+    <SignUpProvider>
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
         >
-          <Animated.View style={[styles.flex, fadeStyle]}>
-            <Slot />
-          </Animated.View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Animated.View style={[styles.flex, fadeStyle]}>
+              <Slot />
+              <StatusBar style="dark" backgroundColor="white" />
+            </Animated.View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </SignUpProvider>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: 'white', // ajuste se seu app usar tema escuro
+    backgroundColor: 'white',
   },
   flex: {
     flex: 1,
