@@ -12,12 +12,14 @@ import { router } from 'expo-router';
 import WaveBackground from '@/components/WaveBackground';
 import AnimatedLottie from '@/components/AnimatedLottie';
 import { Logo } from '@/components/Logo';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function OnboardStart() {
   const theme = useTheme();
 
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(20);
+  const { signOut } = useAuth();
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -32,6 +34,8 @@ export default function OnboardStart() {
   useEffect(() => {
     opacity.value = withTiming(1, { duration: 800 });
     translateY.value = withTiming(0, { duration: 800 });
+    signOut(); // Logout temporariamente para evitar acesso não autorizado
+    
   }, []);
 
   return (

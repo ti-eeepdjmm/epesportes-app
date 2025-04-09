@@ -61,6 +61,7 @@ export default function SignUpStart() {
     const formData = getValues();
     updateData(formData); // <-- Salva os dados temporariamente no context
     console.log('Dados do formulário:', formData);
+  
     router.push('/(auth)/signup-birthday');
   }
 

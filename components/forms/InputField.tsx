@@ -80,6 +80,6 @@ const styles = (theme: any) =>
     errorText: {
       marginTop: 4,
       color: theme.error,
-      fontSize: 12,
+      fontSize: 14,
     },
   });
