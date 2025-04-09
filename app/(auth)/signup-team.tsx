@@ -105,19 +105,34 @@ export default function SignUpTeamScreen() {
     },
   });
 
+  const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
+  const [games, setGames] = useState<{ id: string; name: string }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const isAthlete = watch('isAthlete');
-  const selectedModality = watch('modality') || '';
-  const availablePositions = positionOptions[selectedModality] ?? [];
-  const hasShirtNumber = ['Futsal', 'Handebol', 'Vôlei'].includes(selectedModality);
+  const gamesList = games; // já vem do banco
+  const selectedModalityId = watch('modality');
+  const selectedModalityName = gamesList.find(
+    (game) => String(game.id) === String(selectedModalityId)
+  )?.name || '';
+  
+  const availablePositions = positionOptions[selectedModalityName] ?? [];
+  const hasShirtNumber = ['Futsal', 'Handebol', 'Vôlei'].includes(selectedModalityName);
 
   //reset position when modality changes
   useEffect(() => {
     setValue('position', '');
-  }, [selectedModality]);
+  }, [selectedModalityId]);
 
-  const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
-  const [games, setGames] = useState<{ id: string; name: string }[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Reset and clear fields when isAthlete changes
+  useEffect(() => {
+    if (!isAthlete) {
+      setValue('modality', '');
+      setValue('position', '');
+      setValue('shirtNumber', '');
+    }
+  }, [isAthlete]);
+
 
   // Fetch teams and games data from the API
   useEffect(() => {
@@ -132,7 +147,7 @@ export default function SignUpTeamScreen() {
       } catch (error) {
         console.error('Erro ao buscar dados:', error);
       } finally {
-        setIsLoading(false); // 👈 finaliza carregamento
+        setIsLoading(false); 
       }
     }
 
@@ -155,7 +170,9 @@ export default function SignUpTeamScreen() {
         position,
         shirtNumber,
       } = formData;
-
+       
+      //  console.log('formData', formData);
+      //  console.log('data', data);
       // 1. Cria usuário no Supabase Auth
       await api.post('/auth/register', {
         full_name: name,
@@ -173,7 +190,7 @@ export default function SignUpTeamScreen() {
         favoriteTeam: team,
         profilePhoto: '', // se tiver
         isAthlete,
-        birthdate,
+        birthDate: birthdate,
       });
 
       const userId = userData.id;
@@ -221,7 +238,6 @@ export default function SignUpTeamScreen() {
 
       {isAthlete && (
         <>
-
           <SelectField
             name="modality"
             label="Modalidade"
@@ -245,7 +261,7 @@ export default function SignUpTeamScreen() {
             <InputField
               name="shirtNumber"
               label="Número da camisa"
-              placeholder='Ex: 10'
+              placeholder="Ex: 10"
               control={control}
               keyboardType="numeric"
             />
