@@ -171,22 +171,17 @@ export default function SignUpTeamScreen() {
         shirtNumber,
       } = formData;
        
-      //  console.log('formData', formData);
-      //  console.log('data', data);
       // 1. Cria usuário no Supabase Auth
-      await api.post('/auth/register', {
+      const { data: userAuthData }= await api.post('/auth/register', {
         full_name: name,
         email,
         password,
       });
 
-
-
       // 2. Cadastra na tabela users
       const { data: userData } = await api.post('/users', {
         name,
-        email,
-        password, // pode estar criptografado no backend
+        authUserId: userAuthData.user.id,
         favoriteTeam: team,
         profilePhoto: '', // se tiver
         isAthlete,
@@ -205,9 +200,8 @@ export default function SignUpTeamScreen() {
         });
       }
 
-      Alert.alert('Sucesso', 'Conta criada com sucesso!');
       reset();
-      router.push('/(auth)/login');
+      router.push('/(auth)/signup-success');
     } catch (error) {
       console.error(error);
       Alert.alert('Erro', 'Erro ao criar conta. Tente novamente.');

@@ -42,7 +42,7 @@ export default function Login() {
       }
     };
 
-    doLogin();
+    // doLogin();
   }, []);
 
   return (
@@ -53,7 +53,7 @@ export default function Login() {
         alignItems: 'center',
       }}
     >
-      <Text>Bem-vindo {user?.user_metadata.full_name}!</Text>
+      <Text>Bem-vindo ao login {user?.user_metadata.full_name}!</Text>
     </View>
   );
 }

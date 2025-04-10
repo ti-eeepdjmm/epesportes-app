@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,17 +13,25 @@ import { useSignUp } from '@/contexts/SignUpContext';
 
 
 
-const signUpSchema = z.object({
-  name: z.string().nonempty('O nome é obrigatório').min(2, 'Digite um nome válido'),
-  email: z.string().nonempty('O e-mail é obrigatório').email('E-mail inválido'),
-  password: z.string().nonempty('A senha é obrigatória').min(6, 'Mínimo de 6 caracteres'),
-});
+const signUpSchema = z
+  .object({
+    name: z.string().nonempty('O nome é obrigatório').min(2, 'Digite um nome válido'),
+    email: z.string().nonempty('O e-mail é obrigatório').email('E-mail inválido'),
+    password: z.string().nonempty('A senha é obrigatória').min(6, 'Mínimo de 6 caracteres'),
+    confirmPassword: z.string().nonempty('Confirme sua senha'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'As senhas não coincidem',
+    path: ['confirmPassword'],
+  });
 
 type SignUpFormData = z.infer<typeof signUpSchema>;
 
 export default function SignUpStart() {
   const theme = useTheme();
   const { updateData, data } = useSignUp();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const styles = StyleSheet.create({
     container: {
@@ -51,17 +59,18 @@ export default function SignUpStart() {
       name: '',
       email: '',
       password: '',
+      confirmPassword: '',
     },
   });
 
   async function onSubmit() {
     const isValid = await trigger();
- 
+
     if (!isValid) return;
     const formData = getValues();
-    updateData(formData); // <-- Salva os dados temporariamente no context
+    const { confirmPassword, ...dataToSave } = formData;
+    updateData(dataToSave);
     console.log('Dados do formulário:', formData);
-  
     router.push('/(auth)/signup-birthday');
   }
 
@@ -70,7 +79,20 @@ export default function SignUpStart() {
       <StyledText style={styles.title}>Criar Conta</StyledText>
       <InputField name="name" label="Nome" placeholder="Nome" control={control} />
       <InputField name="email" label="Email" placeholder="Email" control={control} keyboardType="email-address" />
-      <InputField name="password" label="Senha" placeholder="Senha" control={control} secureTextEntry />
+      <InputField
+        name="password"
+        label="Senha"
+        placeholder="Senha"
+        control={control}
+        secure
+      />
+      <InputField
+        name="confirmPassword"
+        label="Confirmar senha"
+        placeholder="Confirmar senha"
+        control={control}
+        secure
+      />
       <Button
         title="Próximo"
         onPress={onSubmit}

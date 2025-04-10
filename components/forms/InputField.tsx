@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { View, TextInput, Text, StyleSheet } from 'react-native';
+import { View, TextInput, Text, StyleSheet, Pressable } from 'react-native';
 import { useController, Control } from 'react-hook-form';
 import { useTheme } from '@/hooks/useTheme';
+import { Ionicons } from '@expo/vector-icons';
 
 interface InputFieldProps {
   name: string;
   label: string;
   placeholder?: string;
   control: Control<any>;
-  secureTextEntry?: boolean;
+  secure?: boolean;
   keyboardType?: 'default' | 'email-address' | 'numeric';
 }
 
@@ -17,11 +18,12 @@ export function InputField({
   label,
   placeholder,
   control,
-  secureTextEntry,
+  secure = false,
   keyboardType = 'default',
 }: InputFieldProps) {
   const theme = useTheme();
   const [isFocused, setIsFocused] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     field: { onChange, onBlur, value },
@@ -41,7 +43,7 @@ export function InputField({
         }}
         placeholder={placeholder}
         placeholderTextColor={theme.gray}
-        secureTextEntry={secureTextEntry}
+        secureTextEntry={secure && !showPassword}
         keyboardType={keyboardType}
         style={[
           styles(theme).input,
@@ -49,6 +51,18 @@ export function InputField({
           error && styles(theme).errorInput,
         ]}
       />
+      {secure && (
+        <Pressable
+          onPress={() => setShowPassword((prev) => !prev)}
+          style={styles(theme).eyeIcon}
+        >
+          <Ionicons
+            name={showPassword ? 'eye-off' : 'eye'}
+            size={20}
+            color={theme.gray}
+          />
+        </Pressable>
+      )}
       {error?.message && (
         <Text style={styles(theme).errorText}>{error.message}</Text>
       )}
@@ -81,5 +95,10 @@ const styles = (theme: any) =>
       marginTop: 4,
       color: theme.error,
       fontSize: 14,
+    },
+    eyeIcon: {
+      position: 'absolute',
+      right: 12,
+      top: 40,
     },
   });

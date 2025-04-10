@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Controller } from 'react-hook-form';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Platform, Text, TouchableOpacity, View } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { format } from 'date-fns';
 import { Feather } from '@expo/vector-icons';
@@ -78,9 +78,8 @@ export function DatePickerField({ name, label, control, placeholder }: Props) {
                             setVisible(false);
                             setFocused(false);
                         }}
-                        textColor={theme.greenLight} // Define a cor dos textos no modal
-                        themeVariant="light"
-                        // display={Platform.OS === 'android' ? 'spinner' : 'default'}
+                        themeVariant="light" // 👈 iOS apenas
+                        display={Platform.OS === 'android' ? 'spinner' : 'default'}
                         cancelTextIOS="Cancelar"
                         confirmTextIOS="Confirmar"
                     />
