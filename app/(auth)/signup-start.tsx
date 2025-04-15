@@ -70,7 +70,6 @@ export default function SignUpStart() {
     const formData = getValues();
     const { confirmPassword, ...dataToSave } = formData;
     updateData(dataToSave);
-    console.log('Dados do formulário:', formData);
     router.push('/(auth)/signup-birthday');
   }
 

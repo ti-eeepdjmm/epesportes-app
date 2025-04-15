@@ -1,69 +1,55 @@
-import { useEffect } from 'react';
-import { useRouter } from 'expo-router';
-import * as Linking from 'expo-linking';
-import api from '@/utils/api';
-import { useSignUp } from '@/contexts/SignUpContext';
-import * as WebBrowser from 'expo-web-browser';
-
-WebBrowser.maybeCompleteAuthSession(); // garante fechamento do navegador no retorno
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Text, View, Alert } from 'react-native';
+import * as QueryParams from 'expo-auth-session/build/QueryParams';
+import { supabase } from '../utils/supabase';
 
 export default function CallbackScreen() {
-  const { updateData, reset } = useSignUp();
+  const { url } = useLocalSearchParams();
   const router = useRouter();
-
-  const handleAuthFromUrl = async (url: string | null) => {
-    console.log(`URL recebida: ${url}`);
-
-    if (!url || !url.includes('#')) {
-      console.error('URL inválida ou sem fragmento');
-      return;
-    }
-
-    const fragment = url.split('#')[1];
-    const accessToken = new URLSearchParams(fragment).get('access_token');
-
-    if (!accessToken) {
-      console.error('access_token não encontrado na URL');
-      return;
-    }
-
-    try {
-      const res = await api.post(
-        '/auth/me',
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        },
-      );
-
-      const { user } = res.data;
-      reset();
-      updateData({
-        name: user.user_metadata.full_name,
-        email: user.email,
-      });
-      console.log('Usuário autenticado:', user);
-      // Redireciona para a tela de cadastro de aniversário
-
-      // router.replace('/(auth)/signup-birthday');
-    } catch (err) {
-      console.error('Erro ao autenticar com backend:', err);
-    }
-  };
+  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'idle'>('idle');
 
   useEffect(() => {
-    // Caso o app tenha sido iniciado com o link
-    Linking.getInitialURL().then(handleAuthFromUrl);
+    const validateAndCreateSession = async () => {
+      if (!url || Array.isArray(url)) return;
 
-    // Caso o app já estivesse aberto e receba o deep link
-    const sub = Linking.addEventListener('url', (event) => {
-      handleAuthFromUrl(event.url);
-    });
+      const { params, errorCode } = QueryParams.getQueryParams(url);
+      const { access_token, refresh_token } = params ?? {};
 
-    return () => sub.remove();
-  }, []);
+      if (errorCode || !access_token || !refresh_token) {
+        setStatus('idle');
+        return; // evita redirecionamento em chamadas inválidas
+      }
 
-  return null;
+      setStatus('loading');
+
+      const { error } = await supabase.auth.setSession({
+        access_token,
+        refresh_token,
+      });
+
+      if (error) {
+        Alert.alert('Erro ao salvar sessão', error.message);
+        setStatus('error');
+        return;
+      }
+
+      setStatus('success');
+      router.replace('/');
+    };
+
+    validateAndCreateSession();
+  }, [url]);
+
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+      {(status === 'loading' || status === 'idle') && <ActivityIndicator size="large" />}
+      <Text style={{ marginTop: 16, fontSize: 16 }}>
+        {status === 'loading' && 'Fazendo login...'}
+        {status === 'success' && 'Login realizado! Redirecionando...'}
+        {status === 'error' && 'Houve um erro no login.'}
+        {status === 'idle' && 'Aguardando confirmação de login...'}
+      </Text>
+    </View>
+  );
 }

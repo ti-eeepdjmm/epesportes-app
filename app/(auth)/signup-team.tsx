@@ -15,52 +15,6 @@ import { router } from 'expo-router';
 import { StyledText } from '@/components/StyledText';
 import { AppLoader } from '@/components/AppLoader';
 
-const schema = z
-  .object({
-    team: z.union([z.string(), z.number()])
-      .refine((val) => val !== '', { message: 'Escolha um time' })
-      .transform((val) => String(val)),
-
-    modality: z.union([z.string(), z.number()])
-      .optional()
-      .transform((val) => (val !== undefined ? String(val) : '')),
-
-    isAthlete: z.boolean(),
-    position: z.string().optional(),
-    shirtNumber: z
-      .string()
-      .refine((val) => val === '' || /^[0-9]{1,2}$/.test(val), {
-        message: 'Informe um número entre 1 e 99',
-      })
-      .optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.isAthlete) {
-      if (!data.modality) {
-        ctx.addIssue({
-          path: ['modality'],
-          code: z.ZodIssueCode.custom,
-          message: 'Escolha uma modalidade',
-        });
-      }
-      if (!data.position) {
-        ctx.addIssue({
-          path: ['position'],
-          code: z.ZodIssueCode.custom,
-          message: 'Escolha uma posição',
-        });
-      }
-      if (!data.shirtNumber) {
-        ctx.addIssue({
-          path: ['shirtNumber'],
-          code: z.ZodIssueCode.custom,
-          message: 'Informe o número da camisa',
-        });
-      }
-    }
-  });
-
-type FormData = z.infer<typeof schema>;
 
 const positionOptions: Record<string, { label: string; value: string }[]> = {
   Futsal: [
@@ -87,6 +41,67 @@ const positionOptions: Record<string, { label: string; value: string }[]> = {
 export default function SignUpTeamScreen() {
   const theme = useTheme();
   const { data, reset } = useSignUp();
+  const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
+  const [games, setGames] = useState<{ id: string; name: string }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const gamesList = games;
+
+
+  const schema = z
+    .object({
+      team: z.union([z.string(), z.number()])
+        .refine((val) => val !== '', { message: 'Escolha um time' })
+        .transform((val) => String(val)),
+
+      modality: z.union([z.string(), z.number()])
+        .optional()
+        .transform((val) => (val !== undefined ? String(val) : '')),
+
+      isAthlete: z.boolean(),
+      position: z.string().optional(),
+      shirtNumber: z
+        .string()
+        .refine((val) => val === '' || /^[0-9]{1,2}$/.test(val), {
+          message: 'Informe um número entre 1 e 99',
+        })
+        .optional(),
+    })
+    .superRefine((data, ctx) => {
+      const modalityName = gamesList.find(
+        (game) => String(game.id) === String(data.modality)
+      )?.name || '';
+
+      if (data.isAthlete) {
+        const isColetivo = ['Futsal', 'Handebol', 'Vôlei'].includes(modalityName);
+        if (!data.modality) {
+          ctx.addIssue({
+            path: ['modality'],
+            code: z.ZodIssueCode.custom,
+            message: 'Escolha uma modalidade',
+          });
+        }
+
+        if (isColetivo) {
+          if (!data.position) {
+            ctx.addIssue({
+              path: ['position'],
+              code: z.ZodIssueCode.custom,
+              message: 'Escolha uma posição',
+            });
+          }
+
+          if (!data.shirtNumber) {
+            ctx.addIssue({
+              path: ['shirtNumber'],
+              code: z.ZodIssueCode.custom,
+              message: 'Informe o número da camisa',
+            });
+          }
+        }
+      }
+    });
+
+  type FormData = z.infer<typeof schema>;
 
   const {
     control,
@@ -105,23 +120,17 @@ export default function SignUpTeamScreen() {
     },
   });
 
-  const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
-  const [games, setGames] = useState<{ id: string; name: string }[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const isAthlete = watch('isAthlete');
-  const gamesList = games; // já vem do banco
   const selectedModalityId = watch('modality');
+  const isAthlete = watch('isAthlete');
   const selectedModalityName = gamesList.find(
     (game) => String(game.id) === String(selectedModalityId)
   )?.name || '';
-  
   const availablePositions = positionOptions[selectedModalityName] ?? [];
   const hasShirtNumber = ['Futsal', 'Handebol', 'Vôlei'].includes(selectedModalityName);
 
-  //reset position when modality changes
   useEffect(() => {
     setValue('position', '');
+    setValue('shirtNumber', '');
   }, [selectedModalityId]);
 
   // Reset and clear fields when isAthlete changes
@@ -133,8 +142,6 @@ export default function SignUpTeamScreen() {
     }
   }, [isAthlete]);
 
-
-  // Fetch teams and games data from the API
   useEffect(() => {
     async function fetchData() {
       try {
@@ -147,7 +154,7 @@ export default function SignUpTeamScreen() {
       } catch (error) {
         console.error('Erro ao buscar dados:', error);
       } finally {
-        setIsLoading(false); 
+        setIsLoading(false);
       }
     }
 
@@ -170,9 +177,9 @@ export default function SignUpTeamScreen() {
         position,
         shirtNumber,
       } = formData;
-       
+
       // 1. Cria usuário no Supabase Auth
-      const { data: userAuthData }= await api.post('/auth/register', {
+      const { data: userAuthData } = await api.post('/auth/register', {
         full_name: name,
         email,
         password,
@@ -190,12 +197,12 @@ export default function SignUpTeamScreen() {
 
       const userId = userData.id;
       // 3. Se for atleta, cadastra também na tabela players
-      if (isAthlete && modality && position && shirtNumber) {
+      if (isAthlete && modality) {
         await api.post('/players', {
           userId,
-          position,
-          jerseyNumber: shirtNumber,
-          gameId: Number(modality), // ← garante que seja número
+          position: position || null,
+          jerseyNumber: shirtNumber || null,
+          gameId: Number(modality),
           teamId: Number(team),
         });
       }
@@ -203,7 +210,6 @@ export default function SignUpTeamScreen() {
       reset();
       router.push('/(auth)/signup-success');
     } catch (error) {
-      console.error(error);
       Alert.alert('Erro', 'Erro ao criar conta. Tente novamente.');
     }
   }
@@ -211,7 +217,6 @@ export default function SignUpTeamScreen() {
   return (
     <ScrollView contentContainerStyle={styles(theme).container}>
       <StyledText style={styles(theme).title}>Escolha seu Time</StyledText>
-
       <SelectField
         name="team"
         label="Time favorito"

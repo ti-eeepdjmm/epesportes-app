@@ -55,7 +55,6 @@ export default function SignUpBirthdayScreen() {
   function onSubmit(data: FormData) {
     const formattedDate = data.birthdate.toISOString().split('T')[0];
     updateData({ birthdate: formattedDate });
-    console.log('Data de nascimento:', formattedDate);
     router.push('/(auth)/signup-team');
   }
 
