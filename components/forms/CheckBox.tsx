@@ -1,25 +1,30 @@
-// components/Base/CheckboxGroup.tsx
+// components/forms/CheckBox.tsx
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
+import { Ionicons } from '@expo/vector-icons';
 
-interface CheckboxGroupProps {
+interface CheckBoxProps {
   label: string;
   value: boolean;
-  onChange: (val: boolean) => void;
+  onChange: (newValue: boolean) => void;
 }
 
-export function CheckboxGroup({ label, value, onChange }: CheckboxGroupProps) {
+export function CheckBox({ label, value, onChange }: CheckBoxProps) {
   const theme = useTheme();
 
   return (
-    <TouchableOpacity
+    <Pressable
       style={styles(theme).container}
       onPress={() => onChange(!value)}
     >
-      <View style={[styles(theme).box, value && styles(theme).checked]} />
+      <View style={[styles(theme).box, value && styles(theme).checkedBox]}>
+        {value && (
+          <Ionicons name="checkmark" size={16} color={theme.white} />
+        )}
+      </View>
       <Text style={styles(theme).label}>{label}</Text>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -28,22 +33,24 @@ const styles = (theme: any) =>
     container: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginVertical: 4,
+      marginRight: 16,
     },
     box: {
-      width: 20,
-      height: 20,
-      borderRadius: 4,
+      width: 24,
+      height: 24,
       borderWidth: 2,
+      borderRadius: 6,
       borderColor: theme.greenLight,
-      marginRight: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.white,
     },
-    checked: {
+    checkedBox: {
       backgroundColor: theme.greenLight,
     },
     label: {
-      fontSize: 14,
-      fontFamily: 'Poppins_400Regular',
+      marginLeft: 8,
+      fontSize: 16,
       color: theme.black,
     },
   });

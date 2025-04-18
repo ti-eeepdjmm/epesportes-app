@@ -1,4 +1,3 @@
-// components/forms/ComboBoxField.tsx
 import React, { useState } from 'react';
 import {
   Text,
@@ -16,10 +15,15 @@ interface ComboBoxFieldProps {
   name: string;
   label: string;
   control: Control<any>;
-  options: string[];
+  options: { label: string; value: string | number }[];
 }
 
-export function ComboBoxField({ name, label, control, options }: ComboBoxFieldProps) {
+export function ComboBoxField({
+  name,
+  label,
+  control,
+  options,
+}: ComboBoxFieldProps) {
   const theme = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -27,6 +31,9 @@ export function ComboBoxField({ name, label, control, options }: ComboBoxFieldPr
     field: { value, onChange },
     fieldState: { error },
   } = useController({ name, control });
+
+  const selectedLabel =
+    options.find((option) => option.value === value)?.label || 'Escolher';
 
   return (
     <View style={{ marginBottom: 16 }}>
@@ -36,7 +43,7 @@ export function ComboBoxField({ name, label, control, options }: ComboBoxFieldPr
         style={[styles(theme).input, error && styles(theme).errorInput]}
       >
         <Text style={{ color: value ? theme.black : theme.gray }}>
-          {value || 'Escolher'}
+          {selectedLabel}
         </Text>
         <Ionicons name="chevron-forward" size={20} color={theme.greenLight} />
       </Pressable>
@@ -46,16 +53,16 @@ export function ComboBoxField({ name, label, control, options }: ComboBoxFieldPr
           <View style={styles(theme).modalContent}>
             <FlatList
               data={options}
-              keyExtractor={(item) => item}
+              keyExtractor={(item) => String(item.value)}
               renderItem={({ item }) => (
                 <Pressable
                   style={styles(theme).option}
                   onPress={() => {
-                    onChange(item);
+                    onChange(item.value);
                     setModalVisible(false);
                   }}
                 >
-                  <Text style={styles(theme).optionText}>{item}</Text>
+                  <Text style={styles(theme).optionText}>{item.label}</Text>
                 </Pressable>
               )}
             />
@@ -97,7 +104,7 @@ const styles = (theme: any) =>
     errorText: {
       marginTop: 4,
       color: theme.error,
-      fontSize: 12,
+      fontSize: 14,
     },
     modalOverlay: {
       flex: 1,

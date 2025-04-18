@@ -53,7 +53,8 @@ export default function SignUpBirthdayScreen() {
   });
 
   function onSubmit(data: FormData) {
-    updateData({ birthdate: data.birthdate });
+    const formattedDate = data.birthdate.toISOString().split('T')[0];
+    updateData({ birthdate: formattedDate });
     router.push('/(auth)/signup-team');
   }
 

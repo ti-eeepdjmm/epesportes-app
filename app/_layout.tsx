@@ -42,7 +42,7 @@ export default function RootLayout() {
   }, [onReady]);
 
   if (!fontsLoaded) {
-    return <AppLoader />;
+    return <AppLoader visible />;
   }
 
   return (
