@@ -22,11 +22,11 @@ export default function OnboardNext() {
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [{ translateY: translateY.value }],
-    alignItems:'center',
-    justifyContent:'flex-start',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
     height: '100%',
-    paddingBottom:24,
-    gap:24,
+    paddingBottom: 24,
+    gap: 24,
   }));
 
   useEffect(() => {
@@ -38,21 +38,30 @@ export default function OnboardNext() {
     <View style={[globalStyles.containerOnboard, { backgroundColor: theme.white }]}>
       <WaveBackground />
       <Animated.View style={animatedStyle}>
-        <AnimatedLottie 
+        <AnimatedLottie
           source={require('../../assets/animations/volei.json')}
-          height={350} 
-          width={350} 
+          height={350}
+          width={350}
         />
         <Animated.View>
           <Text style={[globalStyles.title, { color: theme.greenLight }]}>
-          Chegou a hora!
+            Chegou a hora!
           </Text>
           <Text style={[globalStyles.paragraph, { color: theme.black }]}>
-          Mergulhe no universo dos esportes!
+            Mergulhe no universo dos esportes!
           </Text>
-          <PrimaryButton title="Criar Conta" onPress={() => router.push('/(auth)/signup-start')} />
+          <PrimaryButton
+            title="Criar Conta"
+            onPress={() => router.push('/(auth)/signup-start')}
+            style={{ width: 200, marginTop: 12 }}
+          />
+          <PrimaryButton
+            title="Já Tenho Conta"
+            onPress={() => router.push('/(auth)/login')}
+            style={{ width: 200, marginTop: 12 }}
+          />
         </Animated.View>
-        <Logo styles={{position:'absolute', bottom: 24}} />
+        <Logo styles={{ position: 'absolute', bottom: 24 }} />
       </Animated.View>
     </View>
   );

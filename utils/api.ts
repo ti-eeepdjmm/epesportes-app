@@ -1,25 +1,39 @@
 // src/services/api.ts
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import { getAccessToken, getRefreshToken, setTokens } from '@/utils/storage';
 
-// Cria uma instância do Axios com a base da API
 const api = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_URL, // ou sua URL da API
+  baseURL: process.env.EXPO_PUBLIC_API_URL,
   timeout: 10000,
 });
 
-// Interceptor: adiciona token em todas as requisições automaticamente
 api.interceptors.request.use(
   async (config) => {
-    const token = await SecureStore.getItemAsync('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    const access  = await getAccessToken();
+    const refresh = await getRefreshToken();
+    if (access)  config.headers.Authorization    = `Bearer ${access}`;
+    if (refresh) config.headers['x-refresh-token'] = refresh;
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
+  (err) => Promise.reject(err),
+);
+
+api.interceptors.response.use(
+  async (res) => {
+    const authH    = res.headers['authorization']    as string|undefined;
+    const refreshH = res.headers['x-refresh-token']  as string|undefined;
+
+    if (authH?.startsWith('Bearer ')) {
+      const newAccess = authH.replace(/^Bearer\s+/, '');
+      await setTokens({ accessToken: newAccess, refreshToken: refreshH ?? '' });
+    } else if (refreshH) {
+      // caso só queira atualizar refresh
+      await setTokens({ accessToken: '', refreshToken: refreshH });
+    }
+
+    return res;
   },
+  (err) => Promise.reject(err),
 );
 
 export default api;

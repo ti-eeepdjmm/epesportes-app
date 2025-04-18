@@ -13,9 +13,11 @@ import WaveBackground from '@/components/WaveBackground';
 import AnimatedLottie from '@/components/AnimatedLottie';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/contexts/AuthContext';
+import { useThemeContext } from '@/contexts/ThemeContext';
 
 export default function OnboardStart() {
   const theme = useTheme();
+  const { setTheme } = useThemeContext();
 
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(20);
@@ -35,7 +37,7 @@ export default function OnboardStart() {
     opacity.value = withTiming(1, { duration: 800 });
     translateY.value = withTiming(0, { duration: 800 });
     signOut(); // Logout temporariamente para evitar acesso não autorizado
-    
+    setTheme('light');
   }, []);
 
   return (

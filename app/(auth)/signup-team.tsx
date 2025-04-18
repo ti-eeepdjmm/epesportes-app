@@ -14,6 +14,7 @@ import api from '@/utils/api';
 import { router } from 'expo-router';
 import { StyledText } from '@/components/StyledText';
 import { AppLoader } from '@/components/AppLoader';
+import { setUserRegistered } from '@/utils/storage';
 
 
 const positionOptions: Record<string, { label: string; value: string }[]> = {
@@ -189,6 +190,7 @@ export default function SignUpTeamScreen() {
       const { data: userData } = await api.post('/users', {
         name,
         authUserId: userAuthData.user.id,
+        email,
         favoriteTeam: team,
         profilePhoto: '', // se tiver
         isAthlete,
@@ -208,6 +210,7 @@ export default function SignUpTeamScreen() {
       }
 
       reset();
+      await setUserRegistered();
       router.push('/(auth)/signup-success');
     } catch (error) {
       Alert.alert('Erro', 'Erro ao criar conta. Tente novamente.');
