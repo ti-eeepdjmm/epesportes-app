@@ -5,6 +5,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { View } from "react-native";
 import BellIcon from '../../components/icons/BellIcon';
 import { useState } from "react";
+import { Separator } from "@/components/Separator";
 
 
 
@@ -23,6 +24,7 @@ export default function Profile() {
 
       }}
     >
+      <Separator/>
       <StyledText style={{ fontSize: 16 }}>
         Seu Perfil
       </StyledText>

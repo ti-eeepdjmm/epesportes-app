@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Platform, KeyboardAvoidingView, Alert } from 'react-native';
+import { View, StyleSheet, Platform, KeyboardAvoidingView, Alert} from 'react-native';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,6 +13,10 @@ import GoogleIcon from '../../components/icons/GoogleIcon';
 import api from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { User } from '@supabase/supabase-js';
+//deeplink testing
+import { supabase } from '@/utils/supabase';
+import * as Linking from 'expo-linking'
+import * as WebBrowser from 'expo-web-browser'
 
 
 // Validação do formulário com Zod
@@ -77,12 +81,16 @@ export default function LoginScreen() {
       Alert.alert('Erro ao fazer login', err.message || 'Erro desconhecido');
     }
   };
-
-  const handleLoginGoogle = async () => {
-    try {
-      // 1. Solicita ao backend a URL de login do Supabase
-    } catch (error) {
-      console.error('Erro ao fazer login com Google:', error);
+  // Função chamada quando o usuário clica no botão de login com Google
+  // Essa função abre uma janela de autenticação do Google e redireciona o usuário para a tela de login
+  async function handleOAuth() {
+    const redirectTo = Linking.createURL('callback')
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo, skipBrowserRedirect: true },
+    })
+    if (data?.url) {
+      await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
     }
   }
 
@@ -120,7 +128,7 @@ export default function LoginScreen() {
         />
         <Button
           title="Login com Google"
-          onPress={handleLoginGoogle}
+          onPress={handleOAuth}
           icon={<GoogleIcon color={theme.white} />}
           style={styles.button}
         />
@@ -146,7 +154,7 @@ export default function LoginScreen() {
           </StyledText>
           <StyledText
             style={[styles.link, { color: theme.greenLight }]}
-            onPress={() => router.push('/(auth)/signup-start')}
+            onPress={() => router.push('/(auth)/reset-password')}
           >
             Recuperar senha
           </StyledText>

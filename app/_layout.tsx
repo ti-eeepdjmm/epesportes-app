@@ -14,8 +14,11 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { SocketProvider } from '@/contexts/SocketContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { AppLoader } from '@/components/AppLoader';
+import * as WebBrowser from 'expo-web-browser'
 
-SplashScreen.preventAutoHideAsync();
+WebBrowser.maybeCompleteAuthSession()// for web browser auth session
+
+SplashScreen.preventAutoHideAsync();// Prevent the splash screen from auto-hiding before the app is ready
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({

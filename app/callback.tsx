@@ -1,55 +1,36 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, View, Alert } from 'react-native';
-import * as QueryParams from 'expo-auth-session/build/QueryParams';
-import { supabase } from '../utils/supabase';
+// app/callback.tsx
+import { useEffect } from 'react'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import { supabase } from '../utils/supabase' // seu client
+import { AppLoader } from '@/components/AppLoader'
 
-export default function CallbackScreen() {
-  const { url } = useLocalSearchParams();
-  const router = useRouter();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'idle'>('idle');
+// Define o shape dos params para ganhar tipagem
+type Params = {
+  access_token?: string
+  refresh_token?: string
+  type?: 'signup' | 'recovery' | 'oauth'
+}
+
+export default function Callback() {
+  const router = useRouter()
+  const { access_token, refresh_token, type } =
+    useLocalSearchParams<Params>()  // <-- aqui
 
   useEffect(() => {
-    const validateAndCreateSession = async () => {
-      if (!url || Array.isArray(url)) return;
+    if (!access_token) return
+    supabase.auth
+      .setSession({ access_token, refresh_token: refresh_token! })
+      .then(({ error }) => {
+        if (error) throw error
 
-      const { params, errorCode } = QueryParams.getQueryParams(url);
-      const { access_token, refresh_token } = params ?? {};
+        // redireciona conforme o type
+        if (type === 'signup') router.replace('/(auth)/signup-success')
+        else if (type === 'recovery')
+          router.replace(`/reset-password?token=${access_token}`)
+        else router.replace('/(tabs)')
+      })
+      .catch(console.error)
+  }, [access_token, refresh_token, type])
 
-      if (errorCode || !access_token || !refresh_token) {
-        setStatus('idle');
-        return; // evita redirecionamento em chamadas inválidas
-      }
-
-      setStatus('loading');
-
-      const { error } = await supabase.auth.setSession({
-        access_token,
-        refresh_token,
-      });
-
-      if (error) {
-        Alert.alert('Erro ao salvar sessão', error.message);
-        setStatus('error');
-        return;
-      }
-
-      setStatus('success');
-      router.replace('/');
-    };
-
-    validateAndCreateSession();
-  }, [url]);
-
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-      {(status === 'loading' || status === 'idle') && <ActivityIndicator size="large" />}
-      <Text style={{ marginTop: 16, fontSize: 16 }}>
-        {status === 'loading' && 'Fazendo login...'}
-        {status === 'success' && 'Login realizado! Redirecionando...'}
-        {status === 'error' && 'Houve um erro no login.'}
-        {status === 'idle' && 'Aguardando confirmação de login...'}
-      </Text>
-    </View>
-  );
+  return <AppLoader visible />
 }
