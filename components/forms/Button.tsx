@@ -24,7 +24,7 @@ export function Button({ title, onPress, loading, style, icon }: ButtonProps) {
 
   const styles = StyleSheet.create({
     button: {
-      backgroundColor: theme.greenBackground,
+      backgroundColor: theme.greenLight,
       paddingVertical: 8,
       paddingHorizontal: 24,
       borderRadius: 8,
@@ -34,7 +34,7 @@ export function Button({ title, onPress, loading, style, icon }: ButtonProps) {
       gap: 8,
     },
     text: {
-      color: 'white',
+      color: theme.white,
       fontSize: 16,
       fontFamily: 'Poppins_500Medium',
       alignItems: 'center',

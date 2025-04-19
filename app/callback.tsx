@@ -1,57 +1,73 @@
-import { useEffect } from 'react';
-import { useRouter } from 'expo-router';
-import * as Linking from 'expo-linking';
-import api from '@/utils/api';
-import { useSignUp } from '@/contexts/SignUpContext';
+// app/callback.tsx
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useEffect } from 'react'
+import * as QueryParams from 'expo-auth-session/build/QueryParams'
+import { supabase } from '@/utils/supabase'
+import { AppLoader } from '@/components/AppLoader'
+import { useAuth } from '@/contexts/AuthContext'
+import { setTokens } from '@/utils/storage'
 
-export default function CallbackScreen() {
-  const { updateData, reset } = useSignUp();
-  const router = useRouter();
+export default function Callback() {
+  const { url: encodedUrl } =
+    useLocalSearchParams<{ url?: string }>()
+  const router = useRouter()
+  const { signIn } = useAuth()
+
 
   useEffect(() => {
-    const handleAuth = async () => {
-      const url = await Linking.getInitialURL();
-      console.log(`URL: ${url}`)
+    if (!encodedUrl) return
+    const fullUrl = decodeURIComponent(encodedUrl)
 
-      if (!url || !url.includes('#')) {
-        console.error('URL inválida ou sem fragmento');
-        return;
-      }
+    // extrai tanto query ?type=… quanto fragment #access_token=…&…
+    const { params, errorCode } = QueryParams.getQueryParams(fullUrl)
+    if (errorCode || !params.access_token || !params.refresh_token) {
+      console.error('Erro ao parsear deep link:', errorCode)
+      router.replace('/(auth)/login')
+      return
+    }
 
-      const fragment = url.split('#')[1];
-      const accessToken = new URLSearchParams(fragment).get('access_token');
+    const { access_token, refresh_token, type } = params
+    
+    console.log('Params:', params)
+    
+    // seta a sessão completa
+    supabase.auth
+      .setSession({ access_token, refresh_token })
+      .then(async () => {
+       // salva os tokens no AsyncStorage
+        await setTokens({
+          accessToken: access_token,
+          refreshToken: refresh_token,
+        })
 
-      if (!accessToken) {
-        console.error('access_token não encontrado na URL');
-        return;
-      }
+        const {
+          data: { user },
+          error: userErr,
+        } = await supabase.auth.getUser()
+        if (userErr || !user) throw userErr
 
-      try {
-        const res = await api.post(
-          '/auth/me',
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          },
-        );
-
-        const { user } = res.data;
-        console.log(user)
-        updateData({
+        // salva no seu contexto
+        await signIn(access_token, {
+          id: user.id,
           name: user.user_metadata.full_name,
-          email: user.email,
-        });
+          email: user.email ?? '',
+          profilePhoto: user.user_metadata.avatar_url,
+        })
 
-        router.replace('/(auth)/signup-birthday');
-      } catch (err) {
-        console.error('Erro ao autenticar com backend:', err);
-      }
-    };
+        // finalmente, roteia pra tela certa
+        if (type === 'recovery') {
+          router.replace({ pathname: '/reset-password', params: { token: access_token } })
+        } else if (type === 'signup') {
+          router.replace({ pathname: '/signup-success' })
+        } else {
+          router.replace({ pathname: '/(tabs)' })
+        }
+      })
+      .catch((err) => {
+        console.error('Erro no setSession:', err)
+        router.replace('/(auth)/login')
+      })
+  }, [encodedUrl])
 
-    handleAuth();
-  }, []);
-
-  return null;
+  return <AppLoader visible />
 }

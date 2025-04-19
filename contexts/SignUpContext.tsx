@@ -5,7 +5,7 @@ type SignUpData = {
   name?: string;
   email?: string;
   password?: string;
-  birthdate?: string;
+  birthdate?: string | Date;
   // outros campos futuros...
 };
 
