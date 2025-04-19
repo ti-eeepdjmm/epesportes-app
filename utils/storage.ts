@@ -7,8 +7,8 @@ const USER_REGISTERED_KEY = 'userRegistered';
 const ACCESS_TOKEN_KEY  = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 
-export async function setUserRegistered() {
-  await AsyncStorage.setItem(USER_REGISTERED_KEY, 'true');
+export async function setUserRegistered(value: boolean) {
+  await AsyncStorage.setItem(USER_REGISTERED_KEY, value.toString());
 }
 
 export async function isUserRegistered(): Promise<boolean> {

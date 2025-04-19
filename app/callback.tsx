@@ -1,55 +1,73 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, View, Alert } from 'react-native';
-import * as QueryParams from 'expo-auth-session/build/QueryParams';
-import { supabase } from '../utils/supabase';
+// app/callback.tsx
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useEffect } from 'react'
+import * as QueryParams from 'expo-auth-session/build/QueryParams'
+import { supabase } from '@/utils/supabase'
+import { AppLoader } from '@/components/AppLoader'
+import { useAuth } from '@/contexts/AuthContext'
+import { setTokens } from '@/utils/storage'
 
-export default function CallbackScreen() {
-  const { url } = useLocalSearchParams();
-  const router = useRouter();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'idle'>('idle');
+export default function Callback() {
+  const { url: encodedUrl } =
+    useLocalSearchParams<{ url?: string }>()
+  const router = useRouter()
+  const { signIn } = useAuth()
+
 
   useEffect(() => {
-    const validateAndCreateSession = async () => {
-      if (!url || Array.isArray(url)) return;
+    if (!encodedUrl) return
+    const fullUrl = decodeURIComponent(encodedUrl)
 
-      const { params, errorCode } = QueryParams.getQueryParams(url);
-      const { access_token, refresh_token } = params ?? {};
+    // extrai tanto query ?type=… quanto fragment #access_token=…&…
+    const { params, errorCode } = QueryParams.getQueryParams(fullUrl)
+    if (errorCode || !params.access_token || !params.refresh_token) {
+      console.error('Erro ao parsear deep link:', errorCode)
+      router.replace('/(auth)/login')
+      return
+    }
 
-      if (errorCode || !access_token || !refresh_token) {
-        setStatus('idle');
-        return; // evita redirecionamento em chamadas inválidas
-      }
+    const { access_token, refresh_token, type } = params
+    
+    console.log('Params:', params)
+    
+    // seta a sessão completa
+    supabase.auth
+      .setSession({ access_token, refresh_token })
+      .then(async () => {
+       // salva os tokens no AsyncStorage
+        await setTokens({
+          accessToken: access_token,
+          refreshToken: refresh_token,
+        })
 
-      setStatus('loading');
+        const {
+          data: { user },
+          error: userErr,
+        } = await supabase.auth.getUser()
+        if (userErr || !user) throw userErr
 
-      const { error } = await supabase.auth.setSession({
-        access_token,
-        refresh_token,
-      });
+        // salva no seu contexto
+        await signIn(access_token, {
+          id: user.id,
+          name: user.user_metadata.full_name,
+          email: user.email ?? '',
+          profilePhoto: user.user_metadata.avatar_url,
+        })
 
-      if (error) {
-        Alert.alert('Erro ao salvar sessão', error.message);
-        setStatus('error');
-        return;
-      }
+        // finalmente, roteia pra tela certa
+        if (type === 'recovery') {
+          router.replace({ pathname: '/reset-password', params: { token: access_token } })
+        } else if (type === 'signup') {
+          router.replace({ pathname: '/signup-success' })
+        } else {
+          router.replace({ pathname: '/(tabs)' })
+        }
+      })
+      .catch((err) => {
+        console.error('Erro no setSession:', err)
+        router.replace('/(auth)/login')
+      })
+  }, [encodedUrl])
 
-      setStatus('success');
-      router.replace('/');
-    };
-
-    validateAndCreateSession();
-  }, [url]);
-
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-      {(status === 'loading' || status === 'idle') && <ActivityIndicator size="large" />}
-      <Text style={{ marginTop: 16, fontSize: 16 }}>
-        {status === 'loading' && 'Fazendo login...'}
-        {status === 'success' && 'Login realizado! Redirecionando...'}
-        {status === 'error' && 'Houve um erro no login.'}
-        {status === 'idle' && 'Aguardando confirmação de login...'}
-      </Text>
-    </View>
-  );
+  return <AppLoader visible />
 }
