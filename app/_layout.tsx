@@ -1,4 +1,4 @@
-import { Slot } from 'expo-router';
+import { Slot, useRouter } from 'expo-router';
 import {
   useFonts,
   Poppins_400Regular,
@@ -15,6 +15,7 @@ import { SocketProvider } from '@/contexts/SocketContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { AppLoader } from '@/components/AppLoader';
 import * as WebBrowser from 'expo-web-browser'
+import * as Linking from 'expo-linking'
 
 WebBrowser.maybeCompleteAuthSession()// for web browser auth session
 
@@ -59,11 +60,35 @@ export default function RootLayout() {
 
 function RenderApp({ colorScheme }: { colorScheme: 'light' | 'dark' }) {
   const { user } = useAuth();
-
+  useDeepLinkRedirect();
   return (
     <SocketProvider userId={user?.id ?? ''}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <Slot />
     </SocketProvider>
   );
+}
+
+// Função para tratar deep links
+// 1) Cold start: intercepta apenas 'callback' (já tratado no StartApp)
+function useDeepLinkRedirect() {
+  const router = useRouter()
+  const url = Linking.useURL() // warm‑start
+  console.log('deeplink recebido:', url)
+  useEffect(() => {
+     (async () => {
+      const initialUrl = await Linking.getInitialURL()  // cold‑start
+      const incoming = url ?? initialUrl
+      if (!incoming) return
+
+      // se for callback, manda tudo pra /callback
+      if (incoming.startsWith('epesportes://callback')) {
+        // opcional: encodeURIComponent pra garantir
+        router.replace({
+          pathname: '/callback',
+          params: { url: encodeURIComponent(incoming) },
+        })
+      }
+    })()
+  }, [url])
 }

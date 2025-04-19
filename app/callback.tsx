@@ -1,36 +1,73 @@
 // app/callback.tsx
-import { useEffect } from 'react'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { supabase } from '../utils/supabase' // seu client
+import { useEffect } from 'react'
+import * as QueryParams from 'expo-auth-session/build/QueryParams'
+import { supabase } from '@/utils/supabase'
 import { AppLoader } from '@/components/AppLoader'
-
-// Define o shape dos params para ganhar tipagem
-type Params = {
-  access_token?: string
-  refresh_token?: string
-  type?: 'signup' | 'recovery' | 'oauth'
-}
+import { useAuth } from '@/contexts/AuthContext'
+import { setTokens } from '@/utils/storage'
 
 export default function Callback() {
+  const { url: encodedUrl } =
+    useLocalSearchParams<{ url?: string }>()
   const router = useRouter()
-  const { access_token, refresh_token, type } =
-    useLocalSearchParams<Params>()  // <-- aqui
+  const { signIn } = useAuth()
+
 
   useEffect(() => {
-    if (!access_token) return
-    supabase.auth
-      .setSession({ access_token, refresh_token: refresh_token! })
-      .then(({ error }) => {
-        if (error) throw error
+    if (!encodedUrl) return
+    const fullUrl = decodeURIComponent(encodedUrl)
 
-        // redireciona conforme o type
-        if (type === 'signup') router.replace('/(auth)/signup-success')
-        else if (type === 'recovery')
-          router.replace(`/reset-password?token=${access_token}`)
-        else router.replace('/(tabs)')
+    // extrai tanto query ?type=… quanto fragment #access_token=…&…
+    const { params, errorCode } = QueryParams.getQueryParams(fullUrl)
+    if (errorCode || !params.access_token || !params.refresh_token) {
+      console.error('Erro ao parsear deep link:', errorCode)
+      router.replace('/(auth)/login')
+      return
+    }
+
+    const { access_token, refresh_token, type } = params
+    
+    console.log('Params:', params)
+    
+    // seta a sessão completa
+    supabase.auth
+      .setSession({ access_token, refresh_token })
+      .then(async () => {
+       // salva os tokens no AsyncStorage
+        await setTokens({
+          accessToken: access_token,
+          refreshToken: refresh_token,
+        })
+
+        const {
+          data: { user },
+          error: userErr,
+        } = await supabase.auth.getUser()
+        if (userErr || !user) throw userErr
+
+        // salva no seu contexto
+        await signIn(access_token, {
+          id: user.id,
+          name: user.user_metadata.full_name,
+          email: user.email ?? '',
+          profilePhoto: user.user_metadata.avatar_url,
+        })
+
+        // finalmente, roteia pra tela certa
+        if (type === 'recovery') {
+          router.replace({ pathname: '/reset-password', params: { token: access_token } })
+        } else if (type === 'signup') {
+          router.replace({ pathname: '/signup-success' })
+        } else {
+          router.replace({ pathname: '/(tabs)' })
+        }
       })
-      .catch(console.error)
-  }, [access_token, refresh_token, type])
+      .catch((err) => {
+        console.error('Erro no setSession:', err)
+        router.replace('/(auth)/login')
+      })
+  }, [encodedUrl])
 
   return <AppLoader visible />
 }

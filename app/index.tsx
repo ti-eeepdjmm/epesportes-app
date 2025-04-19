@@ -8,51 +8,48 @@ import {
   isUserRegistered,
   getAccessToken,
   clearTokens,
+  setUserRegistered
 } from '../utils/storage'
 import { useAuth } from '@/contexts/AuthContext'
+import { set } from 'date-fns'
 
 export default function StartApp() {
   const [loading, setLoading] = useState(true)
-   const { signOut } = useAuth();//teste
+   const { signOut } = useAuth()
 
   useEffect(() => {
     async function init() {
       try {
-        // 1) Cold start: captura deep link, se existir
+        // 1) Cold‑start: intercepta apenas 'callback'
         const initialUrl = await Linking.getInitialURL()
+        console.log('Cold start:', initialUrl)
         if (initialUrl) {
           const { path, queryParams } = Linking.parse(initialUrl)
-
-          // trate somente os paths que você conhece:
           if (path === 'callback') {
-            // queryParams pode vir como Record<string,string|boolean>
-            const { token, type } = queryParams as {
-              token?: string
+            const { access_token, refresh_token, type } = queryParams as {
+              access_token?: string
+              refresh_token?: string
               type?: 'signup' | 'recovery' | 'oauth'
             }
+
             router.replace({
               pathname: '/callback',
-              params: { token: token!, type: type! },
+              params: {
+                access_token: access_token!,
+                refresh_token: refresh_token!,
+                type: type!,
+              },
             })
             return
           }
-
-          if (path === 'reset-password') {
-            const { token } = queryParams as { token?: string }
-            router.replace({
-              pathname: '/(auth)/reset-password',
-              params: { token: token! },
-            })
-            return
-          }
-
-          // se tiver outros deep‑links, trate aqui...
         }
 
-        // 2) Sem deep link: fluxo normal de auto‑login
-        clearTokens() // Limpa os tokens antigos, se existirem
-        signOut() //teste
-
+        // 2) Sem deep‑link: fluxo normal
+        // Limpa os tokens e o contexto de autenticação(temporário)
+        await clearTokens()
+        setUserRegistered(false) // Limpa o estado de registro do usuário
+        signOut() // Limpa o contexto de autenticação
+        
         const token = await getAccessToken()
         const registered = await isUserRegistered()
 

@@ -108,46 +108,17 @@ export default function ResetPasswordScreen() {
   // 4) Atualizar senha (token ou sessão autenticada)
   const onUpdatePassword = async (data: PasswordForm) => {
     try {
-      // Se veio token de recovery, usar endpoint de update com token
-      if (token) {
-        await api.post('/auth/update-password', {
-          token,
-          password: data.password,
-        })
-      } else {
-        // se estiver logado, backend pegará tokens dos headers
-        await api.post('/auth/update-password', {
-          password: data.password,
-        })
-      }
-
-      // Backend retorna novos tokens e user nos headers/body
-      const latestRes = await api.get('/auth/me') // opcional: buscar dados atualizados
-      const currentUser = latestRes.data.user
-      const authH = latestRes.headers['authorization']
-      const refreshH = latestRes.headers['x-refresh-token']
-      if (!authH || !refreshH) {
-        throw new Error('Não recebemos tokens do servidor.')
-      }
-      const accessToken = authH.replace(/^Bearer\s+/, '')
-
-      // Atualiza o contexto e navega
-      await signIn(accessToken, {
-        id: currentUser.id,
-        name: currentUser.user_metadata.full_name,
-        email: currentUser.email ?? '',
-        profilePhoto: currentUser.user_metadata.avatar_url,
+      // o interceptor do `api` já adiciona os headers com os tokens
+      await api.post('/auth/update-password', { 
+        newPassword: data.password, 
       })
-
-      Alert.alert('Sucesso', 'Senha atualizada!')
-      router.replace('/(tabs)')
-    } catch (err: any) {
-      console.error(err)
-      Alert.alert(
-        'Erro',
-        err.message || 'Não foi possível atualizar sua senha.'
-      )
+      Alert.alert('Sucesso', 'Senha atualizada')
+      router.replace('/(auth)/login')
+    } catch (err) {
+      Alert.alert('Erro', 'Erro ao atualizar a senha.')
+      router.replace('/(auth)/login')
     }
+  
   }
 
   return (
