@@ -9,6 +9,7 @@ export function Separator() {
       height: 1,
       backgroundColor: theme.grayLight,
       marginVertical: 24,
+      width: '100%',
     },
   });
   

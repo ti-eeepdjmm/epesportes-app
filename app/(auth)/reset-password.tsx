@@ -92,7 +92,7 @@ export default function ResetPasswordScreen() {
           text: 'OK',
           onPress: () => {
             // navega pra tela de sucesso
-            router.replace('/(auth)/recover-success')
+            router.replace({ pathname: '/success', params: { type: 'recovery' } })
           },
         },
       ],

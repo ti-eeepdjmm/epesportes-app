@@ -211,7 +211,7 @@ export default function SignUpTeamScreen() {
 
       reset();
       await setUserRegistered(true);
-      router.push('/(auth)/signup-success');
+      router.replace({ pathname: '/success', params: { type: 'signup' } })
     } catch (error) {
       Alert.alert('Erro', 'Erro ao criar conta. Tente novamente.');
     }

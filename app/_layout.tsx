@@ -74,7 +74,6 @@ function RenderApp({ colorScheme }: { colorScheme: 'light' | 'dark' }) {
 function useDeepLinkRedirect() {
   const router = useRouter()
   const url = Linking.useURL() // warm‑start
-  console.log('deeplink recebido:', url)
   useEffect(() => {
      (async () => {
       const initialUrl = await Linking.getInitialURL()  // cold‑start
