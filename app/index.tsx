@@ -10,6 +10,7 @@ import {
   getAccessToken,
   clearTokens,
 } from '../utils/storage';
+
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function StartApp() {
@@ -45,6 +46,7 @@ export default function StartApp() {
         // 2) Sem deep link: fluxo normal
         const token = await getAccessToken();
         const registered = await isUserRegistered();
+       
 
         if (!token) {
           // sem token: decide entre onboarding ou login
@@ -53,7 +55,7 @@ export default function StartApp() {
         } else {
           // com token: valida sessão no servidor via /auth/me
           try {
-            await api.get('/auth/me');
+            await api.get('/auth/me'); 
             router.replace('/(tabs)');
           } catch (error) {
             console.warn('Token inválido ou expirado, fazendo logout:', error);

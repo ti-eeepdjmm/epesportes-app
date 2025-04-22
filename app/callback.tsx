@@ -41,7 +41,6 @@ export default function Callback() {
           accessToken: access_token,
           refreshToken: refresh_token,
         })
-
         const {
           data: { user },
           error: userErr,
@@ -58,10 +57,11 @@ export default function Callback() {
           authUserId: user.id,
           name: localUSer.name,
           email: localUSer.email,
-          profilePhoto: localUSer.profilePhoto,
+          profilePhoto: localUSer.profilePhoto || user.user_metadata.avatar_url,
           favoriteTeam: localUSer.favoriteTeam,
           isAthlete: localUSer.isAthlete,
           birthDate: localUSer.birthDate,
+          hasPasswordLogin: user?.app_metadata.providers?.includes('email'),
         })
 
         // finalmente, roteia pra tela certa

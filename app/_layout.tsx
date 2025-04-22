@@ -12,7 +12,6 @@ import * as SplashScreen from 'expo-splash-screen';
 import { AppLoader } from '@/components/AppLoader';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
-import { useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useThemeContext } from '@/contexts/ThemeContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';

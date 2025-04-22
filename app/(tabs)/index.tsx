@@ -8,23 +8,7 @@ import { View, Text, ScrollView, StyleSheet } from "react-native";
 
 export default function Home() {
   const theme = useTheme();
-  const { socket } = useSocket();
   const { user } = useAuth()
-
-
-  useEffect(() => {
-    if (!socket) return;
-
-    socket.on('Match:update', (payload) => {
-      console.log('🆕 Nova partida!:', payload);
-    });
-
-    return () => {
-      socket.off('Match:update');
-    };
-
-  }, [socket]);
-
 
   return (
     <ScrollView

@@ -2,6 +2,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { User } from '@/types'
+import { AppLoader } from '@/components/AppLoader';
+import { useNotifications } from './NotificationContext';
 
 
 interface AuthContextData {
@@ -22,6 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { dispatch } = useNotifications();
 
   const isAuthenticated = !!user && !!token;
 
@@ -52,17 +55,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     setToken(null);
     setUser(null);
+    dispatch({ type: 'RESET' });
 
     await SecureStore.deleteItemAsync('token');
     await SecureStore.deleteItemAsync('user');
   };
 
-  const updateUser = (newUser: User) => {
+  const updateUser = async (newUser: User) => {
     setUser(newUser);
-    SecureStore.setItemAsync('user', JSON.stringify(newUser));
+    await SecureStore.setItemAsync('user', JSON.stringify(newUser));
   };
 
-  if (isLoading) return null;
+  if (isLoading) return <AppLoader visible />;
 
   return (
     <AuthContext.Provider value={{ user, token, isAuthenticated, isLoading, signIn, signOut, updateUser }}>

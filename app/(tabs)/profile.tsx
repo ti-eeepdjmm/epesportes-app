@@ -87,7 +87,6 @@ export default function Profile() {
   const handleLogout = async () => {
     try {
       setLogoutLoading(true);
-      await api.post('/auth/logout');
       await signOut();
       await clearTokens();
       router.replace('/(auth)/login');

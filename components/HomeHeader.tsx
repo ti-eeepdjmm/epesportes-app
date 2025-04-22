@@ -15,16 +15,13 @@ export function HomeHeader() {
 
   // Calcula quantas notificações não lidas existem
   const unreadCount = state.items.filter(n => !n.read).length;
-
   return (
     <View style={styles(theme).container}>
-      {/* Avatar do usuário */}
       <Image
-        source={{ uri: user?.profilePhoto ?? '' }}
+        source={{ uri: user?.profilePhoto || 'https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/avatars/default-avatar.png' }}
         style={styles(theme).avatar}
       />
 
-      {/* Barra de pesquisa (sem lógica ainda) */}
       <View style={styles(theme).searchContainer}>
         <TextInput
           placeholder="Pesquisar"
@@ -33,7 +30,6 @@ export function HomeHeader() {
         />
       </View>
 
-      {/* Ícone de notificações com badge */}
       <TouchableOpacity
         style={styles(theme).bellContainer}
         onPress={() => {

@@ -7,6 +7,7 @@ export interface User {
   profilePhoto: string | null;
   isAthlete: boolean;
   birthDate: string | null;
+  hasPasswordLogin: boolean;
 }
 
 export interface UserPreferences {

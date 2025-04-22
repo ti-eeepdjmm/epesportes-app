@@ -20,11 +20,16 @@ export async function setTokens({
   accessToken,
   refreshToken,
 }: {
-  accessToken: string;
-  refreshToken: string;
+  accessToken?: string;
+  refreshToken?: string;
 }) {
-  await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
-  await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+  if (accessToken !== undefined && accessToken !== '') {
+    await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
+  }
+
+  if (refreshToken !== undefined && refreshToken !== '') {
+    await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+  }
 }
 
 export async function getAccessToken(): Promise<string | null> {
