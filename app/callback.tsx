@@ -8,19 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { setTokens } from '@/utils/storage'
 import api from '@/utils/api'
 import { User } from '@supabase/supabase-js'
-
-// Defina a interface do seu usuário local, se ainda não tiver
-interface LocalUser {
-  id: string
-  authUserId: string
-  name: string
-  email: string
-  favoriteTeam: string | null
-  profilePhoto: string | null
-  isAthlete: boolean
-  birthDate: string | null
-  // …outros campos
-}
+import { User as LocalUser } from '@/types'
 
 export default function Callback() {
   const { url: encodedUrl } =
@@ -62,14 +50,18 @@ export default function Callback() {
 
         //verifica se o usuário já existe na API
         // se não existe, cria um registro parcial
-        await getOrCreateLocalUser(user);
+        const localUSer = await getOrCreateLocalUser(user);
         
         // salva no seu contexto
         await signIn(access_token, {
-          id: user.id,
-          name: user.user_metadata.full_name,
-          email: user.email ?? '',
-          profilePhoto: user.user_metadata.avatar_url,
+          id: localUSer.id,
+          authUserId: user.id,
+          name: localUSer.name,
+          email: localUSer.email,
+          profilePhoto: localUSer.profilePhoto,
+          favoriteTeam: localUSer.favoriteTeam,
+          isAthlete: localUSer.isAthlete,
+          birthDate: localUSer.birthDate,
         })
 
         // finalmente, roteia pra tela certa

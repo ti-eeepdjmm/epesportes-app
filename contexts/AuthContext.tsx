@@ -1,13 +1,8 @@
 // src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import { User } from '@/types'
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  profilePhoto?: string;
-}
 
 interface AuthContextData {
   user: User | null;

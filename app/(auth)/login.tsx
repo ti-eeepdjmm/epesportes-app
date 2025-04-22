@@ -23,6 +23,9 @@ import { supabase } from '@/utils/supabase'
 import * as WebBrowser from 'expo-web-browser'
 import { REDIRECT_URI } from '@/utils/deep'  // já gerado com makeRedirectUri
 import axios, { AxiosError } from 'axios'
+import { User as LocalUser } from '@/types'
+
+
 
 // Validação com Zod
 const loginSchema = z.object({
@@ -69,13 +72,19 @@ export default function LoginScreen() {
         throw new Error('Tokens não recebidos do servidor.')
       }
       const accessToken = authH.replace(/^Bearer\s+/, '')
+
   
       // 3) Faz o signIn no contexto
+      const { data: localUser } = await api.get<LocalUser>(`/users/email/${user.email}`)
       await signIn(accessToken, {
-        id: user.id,
-        name: user.user_metadata.full_name,
-        email: user.email ?? '',
-        profilePhoto: user.user_metadata.avatar_url,
+        id: localUser.id,
+        authUserId: user.id,
+        name: localUser.name,
+        email: localUser.email,
+        profilePhoto: localUser.profilePhoto,
+        favoriteTeam: localUser.favoriteTeam,
+        isAthlete: localUser.isAthlete,
+        birthDate: localUser.birthDate,
       })
   
       // 4) Redireciona

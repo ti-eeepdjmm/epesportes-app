@@ -1,14 +1,16 @@
+import { HomeHeader } from "@/components/HomeHeader";
 import { StyledText } from "@/components/StyledText"
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
 import { useTheme } from "@/hooks/useTheme";
 import { useEffect, useState } from "react";
-import { View, Text } from "react-native";
+import { View, Text, ScrollView, StyleSheet } from "react-native";
 
 export default function Home() {
   const theme = useTheme();
   const { socket } = useSocket();
   const { user } = useAuth()
+
 
   useEffect(() => {
     if (!socket) return;
@@ -25,18 +27,40 @@ export default function Home() {
 
 
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: theme.grayBackground,
-
-      }}
+    <ScrollView
+      style={styles(theme).container}
+      contentContainerStyle={styles(theme).contentContainer}
+      showsVerticalScrollIndicator={false}
     >
-      <StyledText style={{ fontSize: 16 }}>
+      <HomeHeader />
+      <StyledText style={styles(theme).title}>
         Bem-vindo {user?.name}!
       </StyledText>
-    </View>
+    </ScrollView>
   );
 }
+
+const styles = (theme: any) =>
+  StyleSheet.create({
+    container: {
+      padding: 16,
+      backgroundColor: theme.white,
+    },
+    contentContainer: {
+      flexGrow: 1,
+      justifyContent: "flex-start",
+      alignItems: "center",
+      gap: 16,
+    },
+    title: {
+      fontSize: 18,
+      fontFamily: 'Poppins_600SemiBold',
+      color: theme.black,
+    },
+    subtitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: theme.black,
+    },
+  });
+

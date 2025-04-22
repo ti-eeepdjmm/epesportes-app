@@ -78,10 +78,8 @@ export default function ResetPasswordScreen() {
   // 3) Enviar e‑mail de recuperação (não autenticado)
   const onSendEmail = async (data: EmailForm) => {
     try {
-      const redirectTo = Linking.createURL('/callback')
       await api.post('/auth/recover-password', {
         email: data.email,
-        redirectTo,
       })
       // em vez de só um Alert simples, defina botão com callback:
     Alert.alert(

@@ -1,4 +1,6 @@
+import React, { useEffect, useCallback } from 'react';
 import { Slot, useRouter } from 'expo-router';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import {
   useFonts,
   Poppins_400Regular,
@@ -7,21 +9,35 @@ import {
   Poppins_700Bold,
 } from '@expo-google-fonts/poppins';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useCallback } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { useColorScheme } from 'react-native';
-import { ThemeProvider } from '@/contexts/ThemeContext';
-import { SocketProvider } from '@/contexts/SocketContext';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { AppLoader } from '@/components/AppLoader';
-import * as WebBrowser from 'expo-web-browser'
-import * as Linking from 'expo-linking'
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+import { useColorScheme } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { ThemeProvider, useThemeContext } from '@/contexts/ThemeContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { SocketProvider } from '@/contexts/SocketContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 
-WebBrowser.maybeCompleteAuthSession()// for web browser auth session
+// Completa sessões de autenticação web
+WebBrowser.maybeCompleteAuthSession();
 
-SplashScreen.preventAutoHideAsync();// Prevent the splash screen from auto-hiding before the app is ready
+// Previna o auto-hide da splash até que o app esteja pronto
+SplashScreen.preventAutoHideAsync().catch(console.warn);
 
 export default function RootLayout() {
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppEntry />
+        </AuthProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
+  );
+}
+
+function AppEntry() {
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_500Medium,
@@ -29,7 +45,7 @@ export default function RootLayout() {
     Poppins_700Bold,
   });
 
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useThemeContext().theme ?? 'dark';
 
   const onReady = useCallback(async () => {
     if (fontsLoaded) {
@@ -49,45 +65,42 @@ export default function RootLayout() {
     return <AppLoader visible />;
   }
 
-  return (
-    <ThemeProvider>
-      <AuthProvider>
-        <RenderApp colorScheme={colorScheme} />
-      </AuthProvider>
-    </ThemeProvider>
-  );
+  return <RenderApp colorScheme={colorScheme} />;
 }
 
 function RenderApp({ colorScheme }: { colorScheme: 'light' | 'dark' }) {
   const { user } = useAuth();
   useDeepLinkRedirect();
+
   return (
-    <SocketProvider userId={user?.id ?? ''}>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <Slot />
+    <SocketProvider userId={user?.authUserId ?? ''}>
+      <NotificationProvider>
+        <SafeAreaView style={{ flex: 1 }}>
+          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+          <Slot />
+        </SafeAreaView>
+      </NotificationProvider>
     </SocketProvider>
   );
 }
 
-// Função para tratar deep links
-// 1) Cold start: intercepta apenas 'callback' (já tratado no StartApp)
 function useDeepLinkRedirect() {
-  const router = useRouter()
-  const url = Linking.useURL() // warm‑start
-  useEffect(() => {
-     (async () => {
-      const initialUrl = await Linking.getInitialURL()  // cold‑start
-      const incoming = url ?? initialUrl
-      if (!incoming) return
+  const router = useRouter();
+  const url = Linking.useURL();
 
-      // se for callback, manda tudo pra /callback
-      if (incoming.startsWith('epesportes://callback')) {
-        // opcional: encodeURIComponent pra garantir
+  useEffect(() => {
+    (async () => {
+      const initialUrl = await Linking.getInitialURL();
+      const incoming = url ?? initialUrl;
+      if (!incoming) return;
+
+      const callbackUrl = Linking.createURL('callback');
+      if (incoming.startsWith(callbackUrl)) {
         router.replace({
           pathname: '/callback',
           params: { url: encodeURIComponent(incoming) },
-        })
+        });
       }
-    })()
-  }, [url])
+    })();
+  }, [url]);
 }
