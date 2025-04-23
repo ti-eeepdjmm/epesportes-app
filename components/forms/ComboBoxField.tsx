@@ -16,6 +16,7 @@ interface ComboBoxFieldProps {
   label: string;
   control: Control<any>;
   options: { label: string; value: string | number }[];
+  disabled?: boolean;
 }
 
 export function ComboBoxField({
@@ -23,6 +24,7 @@ export function ComboBoxField({
   label,
   control,
   options,
+  disabled,
 }: ComboBoxFieldProps) {
   const theme = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
@@ -41,6 +43,7 @@ export function ComboBoxField({
       <Pressable
         onPress={() => setModalVisible(true)}
         style={[styles(theme).input, error && styles(theme).errorInput]}
+        disabled={disabled}
       >
         <Text style={{ color: value ? theme.black : theme.gray }}>
           {selectedLabel}

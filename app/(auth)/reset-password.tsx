@@ -17,6 +17,8 @@ import { useTheme } from '@/hooks/useTheme';
 import api from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { clearTokens } from '@/utils/storage';
+import { useCustomBack } from '@/hooks/useCustomBack';
+import { supabase } from '@/utils/supabase';
 
 // Schemas Zod
 const emailSchema = z.object({
@@ -47,6 +49,9 @@ export default function ResetPasswordScreen() {
   const router = useRouter();
   const { token } = useLocalSearchParams<{ token?: string }>();
   const { user, signOut } = useAuth();
+  
+  const fallback = user ? '/(tabs)/profile' : '/(auth)/login';
+  useCustomBack(fallback);
 
   const {
     control: emailControl,
@@ -87,9 +92,7 @@ export default function ResetPasswordScreen() {
     try {
       if (isOAuthUserWithoutPassword) {
         // Novo fluxo: criar senha (registrar email/password via backend)
-        await api.post('/auth/register', {
-          full_name: user?.name,
-          email: user?.email,
+        await supabase.auth.updateUser({
           password: data.password,
         });
         Alert.alert('Sucesso', 'Senha criada com sucesso!');

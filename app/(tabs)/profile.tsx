@@ -1,138 +1,134 @@
+// src/screens/ProfileScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { ScrollView, Alert, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SettingToggle } from '@/components/SettingToggle';
-import { StyledText } from '@/components/StyledText';
 import { useTheme } from '@/hooks/useTheme';
-import MoonIcon from '@/components/icons/MoonIcon';
-import BellIcon from '@/components/icons/BellPausedIcon';
-import LogoutIcon from '@/components/icons/LogoutIcon';
-import LockIcon from '@/components/icons/LockIcon';
-import { Separator } from '@/components/Separator';
-import api from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { useThemeContext } from '@/contexts/ThemeContext';
-import { clearTokens } from '@/utils/storage';
-import { MenuItem } from '@/components/MenuItem';
 import { AppLoader } from '@/components/AppLoader';
+import { Separator } from '@/components/Separator';
+import { StyledText } from '@/components/StyledText';
+import { SettingToggle } from '@/components/SettingToggle';
+import { MenuItem } from '@/components/MenuItem';
+import LockIcon from '@/components/icons/LockIcon';
+import LogoutIcon from '@/components/icons/LogoutIcon';
+import BellIcon from '@/components/icons/BellPausedIcon';
+import MoonIcon from '@/components/icons/MoonIcon';
+import ProfileInfoCard from '@/components/profile/ProfileInfoCard';
+import EditProfileForm from '@/components/profile/EditProfileForm';
+import api from '@/utils/api';
+import { clearTokens } from '@/utils/storage';
 import { UserPreferences } from '@/types';
 
-export default function Profile() {
+export default function ProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { signOut, user } = useAuth();
+  const { signOut, user, updateUser } = useAuth();
+  const { dispatch } = useNotifications();
   const { setTheme, theme: currentThemeKey } = useThemeContext();
 
-  // estado de preferências
   const [darkModeEnabled, setDarkModeEnabled] = useState(currentThemeKey === 'dark');
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [prefLoading, setPrefLoading] = useState(false);
+  const [playerLoading, setPlayerLoading] = useState(true);
   const [logoutLoading, setLogoutLoading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [playerData, setPlayerData] = useState<any | null>(null);
 
-  // // carrega preferências do usuário ao montar
-  // useEffect(() => {
-  //   async function loadPreferences() {
-  //     try {
-  //       const response = await api.get<UserPreferences>(`/user-preferences/user/${user!.id}`);//alterar backend!!!!!!
-  //       const { userId, darkMode, notificationsEnabled } = response.data;
-  //       setUserPreferences({ darkMode, notificationsEnabled, userId });
-  //       console.log('Preferências carregadas:', response.data);
-  //     } catch (err) {
-  //       const { userId, darkMode, notificationsEnabled } = await createPreferences({ darkMode: false, notificationsEnabled: true, userId: user!.id });
-  //       setUserPreferences({ darkMode, notificationsEnabled, userId });
-  //     } finally {
-  //       setPrefLoading(false);
-  //     }
-  //   }
-  //   loadPreferences();
-  // }, []);
-
-  // atualiza preferências via API
-  const setUserPreferences = (preferences: UserPreferences) => {
-    setDarkModeEnabled(preferences.darkMode);
-    setNotificationsEnabled(preferences.notificationsEnabled);
-    // aplica tema de acordo
-    setTheme(preferences.darkMode ? 'dark' : 'light');
-  }
-
-  const updatePreferences = async (updates: Partial<UserPreferences>): Promise<UserPreferences | any > => {
-    try {
-      return await api.patch<UserPreferences>('/user-preferences', updates);
-    } catch (err) {
-      console.error('Erro ao atualizar preferências', err);
-      Alert.alert('Erro', 'Não foi possível atualizar suas preferências.');
+  useEffect(() => {
+    if (user?.isAthlete) {
+      api.get(`/players/user/${user.id}`).then(res => {
+        setPlayerData(res.data);
+      }).catch(() => console.error('Erro ao carregar dados do jogador')).finally(() => setPlayerLoading(false));
+    } else {
+      setPlayerLoading(false);
     }
-  };
-
-  const createPreferences = async (preferences:UserPreferences): Promise<UserPreferences | any > => {
-    try {
-      return await api.post<UserPreferences>('/user-preferences', preferences);
-    } catch (err) {
-      console.error('Erro ao criar preferências', err);
-      Alert.alert('Erro', 'Não foi possível salvar suas preferências.');
-    }
-  };
-
-  const handleToggleDarkMode = (value: boolean) => {
-    setDarkModeEnabled(value);
-    setTheme(value ? 'dark' : 'light');
-    updatePreferences({ darkMode: value });
-  };
-
-  const handleToggleNotifications = (value: boolean) => {
-    setNotificationsEnabled(value);
-    updatePreferences({ notificationsEnabled: value });
-  };
+  }, []);
 
   const handleLogout = async () => {
     try {
       setLogoutLoading(true);
       await signOut();
       await clearTokens();
+      dispatch({ type: 'RESET' });
       router.replace('/(auth)/login');
     } catch (err) {
-      console.error('Erro ao fazer logout', err);
-      Alert.alert('Erro', 'Não foi possível sair. Tente novamente.');
+      Alert.alert('Erro', 'Não foi possível sair.');
     } finally {
       setLogoutLoading(false);
     }
   };
 
-  const loading = prefLoading || logoutLoading;
+  const handleSaveProfile = async (data: any) => {
+    try {
+      const updatedUser = await api.patch(`/users/${user!.id}`, {
+        name: data.name,
+        favoriteTeam: data.favoriteTeam,
+      });
+
+      if (user!.isAthlete && playerData) {
+        await api.patch(`/players/${playerData.id}`, {
+          position: data.position,
+          jerseyNumber: data.jerseyNumber,
+          gameId: data.gameId,
+        });
+      }
+
+      updateUser(updatedUser.data);
+      setEditing(false);
+    } catch (err) {
+      Alert.alert('Erro', 'Não foi possível atualizar o perfil.');
+    }
+  };
+
+  const loading = prefLoading || logoutLoading || playerLoading;
 
   return (
     <>
-      <ScrollView
-        style={styles(theme).container}
-        contentContainerStyle={{ paddingBottom: 40 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <StyledText style={styles(theme).title}>Perfil</StyledText>
+      <ScrollView style={{ backgroundColor: theme.white }} contentContainerStyle={{ paddingBottom: 40 }}>
+        <StyledText style={[styles(theme).title, { fontSize: 24 }]}>Perfil</StyledText>
         <Separator />
 
-        <StyledText style={styles(theme).subtitle}>Informações do Usuário</StyledText>
-        {/* TODO: Exibir dados do usuário aqui */}
+        <ProfileInfoCard user={user!} onEditPhoto={() => {}} />
+
+        <EditProfileForm
+          user={user!}
+          playerData={playerData}
+          onSave={handleSaveProfile}
+          onCancel={() => setEditing(false)}
+          isEditing={editing}
+          setIsEditing={setEditing}
+        />
+
         <Separator />
 
-        <StyledText style={styles(theme).subtitle}>Aparência e Personalização</StyledText>
+        <StyledText style={styles(theme).title}>Aparência e Personalização</StyledText>
         <SettingToggle
           label="Modo Escuro"
           value={darkModeEnabled}
-          onChange={handleToggleDarkMode}
+          onChange={(val) => {
+            setDarkModeEnabled(val);
+            setTheme(val ? 'dark' : 'light');
+            api.patch('/user-preferences', { darkMode: val });
+          }}
           icon={<MoonIcon size={24} color={theme.black} />}
         />
         <Separator />
 
-        <StyledText style={styles(theme).subtitle}>Notificações</StyledText>
+        <StyledText style={styles(theme).title}>Notificações</StyledText>
         <SettingToggle
           label="Pausar notificações"
           value={notificationsEnabled}
-          onChange={handleToggleNotifications}
+          onChange={(val) => {
+            setNotificationsEnabled(val);
+            api.patch('/user-preferences', { notificationsEnabled: val });
+          }}
           icon={<BellIcon size={24} color={theme.black} />}
         />
         <Separator />
 
-        <StyledText style={styles(theme).subtitle}>Segurança e Privacidade</StyledText>
+        <StyledText style={styles(theme).title}>Segurança</StyledText>
         <MenuItem
           icon={<LockIcon size={24} color={theme.black} />}
           label="Alterar senha"
@@ -141,7 +137,7 @@ export default function Profile() {
         />
         <Separator />
 
-        <StyledText style={styles(theme).subtitle}>Conta e Gerenciamento</StyledText>
+        <StyledText style={styles(theme).title}>Conta</StyledText>
         <MenuItem
           icon={<LogoutIcon size={24} color={theme.black} />}
           label="Sair"
@@ -163,7 +159,7 @@ const styles = (theme: any) =>
       paddingBottom: 72,
     },
     title: {
-      fontSize: 24,
+      fontSize: 18,
       fontFamily: 'Poppins_600SemiBold',
       color: theme.black,
       paddingHorizontal: 16,

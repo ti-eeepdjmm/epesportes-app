@@ -1,14 +1,14 @@
 import { HomeHeader } from "@/components/HomeHeader";
 import { StyledText } from "@/components/StyledText"
 import { useAuth } from "@/contexts/AuthContext";
-import { useSocket } from "@/contexts/SocketContext";
+import { useSmartBackHandler } from "@/hooks/useSmartBackHandler";
 import { useTheme } from "@/hooks/useTheme";
-import { useEffect, useState } from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { ScrollView, StyleSheet } from "react-native";
 
 export default function Home() {
   const theme = useTheme();
-  const { user } = useAuth()
+  const { user } = useAuth();
+  useSmartBackHandler();
 
   return (
     <ScrollView

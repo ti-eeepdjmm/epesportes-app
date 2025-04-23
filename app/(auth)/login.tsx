@@ -68,7 +68,6 @@ export default function LoginScreen() {
       // 2) Extrai user + tokens
       const user = res.data.user
       const accessToken = await getAccessToken();
-      console.log("access_token:(login)", accessToken);
   
       // 3) Faz o signIn no contexto
       const { data: localUser } = await api.get<LocalUser>(`/users/email/${user.email}`)
