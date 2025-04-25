@@ -9,18 +9,11 @@ import { InputField } from '@/components/forms/InputField';
 import { Button } from '@/components/forms/Button';
 import { ComboBoxField as SelectField } from '@/components/forms/ComboBoxField';
 import { useTheme } from '@/hooks/useTheme';
-import { User } from '@/types';
+import { Player, User } from '@/types';
 import api from '@/utils/api';
+import { AppLoader } from '@/components/AppLoader';
 
-const schema = z.object({
-  name: z.string().min(3, 'Nome deve ter pelo menos 3 letras'),
-  favoriteTeam: z.string().min(2, 'Informe um time válido'),
-  position: z.string().optional(),
-  jerseyNumber: z.string().optional(),
-  gameId: z.string().optional(),
-});
-
-const individualGames = ['Tênis de Mesa', 'Xadrez'];
+const individualGames = ['tênis de mesa', 'xadrez'];
 
 const positionsBySport: Record<string, { label: string; value: string }[]> = {
   futsal: [
@@ -46,14 +39,12 @@ const positionsBySport: Record<string, { label: string; value: string }[]> = {
 
 export default function EditProfileForm({
   user,
-  playerData,
   onSave,
   onCancel,
   isEditing,
   setIsEditing,
 }: {
   user: User;
-  playerData?: any;
   onSave: (data: any) => void;
   onCancel: () => void;
   isEditing: boolean;
@@ -61,73 +52,137 @@ export default function EditProfileForm({
 }) {
   const theme = useTheme();
   const [games, setGames] = useState<{ label: string; value: string }[]>([]);
-  const [selectedGame, setSelectedGame] = useState<string>('');
+  const [teams, setTeams] = useState<{ label: string; value: string }[]>([]);
+  const [playerData, setPlayerData] = useState<Player | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedGameLabel, setSelectedGameLabel] = useState('');
+
+  const schema = z
+    .object({
+      username: z.string().optional(),
+      name: z.string().min(3, 'Nome deve ter pelo menos 3 letras'),
+      favoriteTeam: z.string().min(1, 'Informe um time válido'),
+      gameId: z.string().optional(),
+      position: z.string().optional(),
+      jerseyNumber: z.string().optional(),
+    })
+    .superRefine((data, ctx) => {
+      const isCollective = ['futsal', 'handebol', 'vôlei'].includes(selectedGameLabel);
+      if (isCollective) {
+        if (!data.position) {
+          ctx.addIssue({
+            path: ['position'],
+            code: z.ZodIssueCode.custom,
+            message: 'Escolha uma posição',
+          });
+        }
+        if (!data.jerseyNumber) {
+          ctx.addIssue({
+            path: ['jerseyNumber'],
+            code: z.ZodIssueCode.custom,
+            message: 'Informe o número da camisa',
+          });
+        }
+      }
+    });
 
   const {
     control,
     handleSubmit,
     watch,
+    setValue,
+    reset,
+    clearErrors,
     formState: { errors },
   } = useForm({
-    defaultValues: {
-      name: user.name,
-      favoriteTeam: user.favoriteTeam ?? '',
-      position: playerData?.position || '',
-      jerseyNumber: playerData?.jerseyNumber?.toString() || '',
-      gameId: playerData?.gameId || '',
-    },
     resolver: zodResolver(schema),
+    defaultValues: {
+      username: user.username || '',
+      name: user.name,
+      favoriteTeam: user.favoriteTeam?.toString() ?? '',
+      position: '',
+      jerseyNumber: '',
+      gameId: '',
+    },
   });
 
   const watchedGameId = watch('gameId');
 
   useEffect(() => {
-    async function loadGames() {
+    async function loadData() {
       try {
-        const res = await api.get('/games');
-        const options = res.data.map((g: any) => ({ label: g.name, value: g.id }));
-        setGames(options);
+        const [gamesRes, teamsRes] = await Promise.all([
+          api.get('/games'),
+          api.get('/teams'),
+        ]);
 
-        if (playerData?.gameId) {
-          const selected = res.data.find((g: any) => g.id === playerData.gameId);
-          if (selected) setSelectedGame(selected.name.toLowerCase());
+        setGames(gamesRes.data.map((g: any) => ({ label: g.name, value: String(g.id) })));
+        setTeams(teamsRes.data.map((t: any) => ({ label: t.name, value: String(t.id) })));
+
+        if (user.isAthlete) {
+          const res = await api.get<Player>(`/players/user/${user.id}`);
+          const player = res.data;
+          setPlayerData(player);
+
+          reset({
+            username: user.username || '',
+            name: user.name,
+            favoriteTeam: user.favoriteTeam?.toString() ?? '',
+            jerseyNumber: player.jerseyNumber?.toString() || '',
+            gameId: player.game?.id.toString() || '',
+            position: player.position || '',
+          });
         }
       } catch (err) {
-        console.error('Erro ao carregar modalidades');
+        console.error('Erro ao carregar dados iniciais', err);
+      } finally {
+        setLoading(false);
       }
     }
-    if (user.isAthlete) {
-      loadGames();
-    }
-  }, []);
+    loadData();
+  }, [user]);
 
   useEffect(() => {
-    if (!watchedGameId) return;
-    const selected = games.find((g) => g.value === watchedGameId);
-    if (selected) {
-      setSelectedGame(selected.label.toLowerCase());
-    }
-  }, [watchedGameId, games]);
+    const selectedGame = games.find(g => g.value === watchedGameId);
+    const label = selectedGame?.label?.toLowerCase() || '';
+    setSelectedGameLabel(label);
 
-  const isIndividual = individualGames.includes(selectedGame);
-  const sportKey = selectedGame.toLowerCase();
-  const positionOptions = positionsBySport[sportKey] || [];
+    if (label) {
+      setValue('position', '');
+      setValue('jerseyNumber', '');
+      clearErrors(['position', 'jerseyNumber']);
+    }
+  }, [watchedGameId]);
+
+  const isIndividual = individualGames.includes(selectedGameLabel);
+  const positionOptions = positionsBySport[selectedGameLabel] || [];
+
+  if (loading) return <AppLoader visible={loading} />;
 
   return (
     <View style={styles(theme).form}>
+      <InputField
+        name="username"
+        label="@username"
+        placeholder="Escolha seu nome de usuário"
+        control={control}
+        disabled={isEditing}
+      />
+
       <InputField
         name="name"
         label="Nome"
         placeholder="Nome do Usuário"
         control={control}
-        disabled={!isEditing}
+        disabled={isEditing}
       />
+
       <SelectField
         name="favoriteTeam"
         label="Time favorito"
         control={control}
         disabled={!isEditing}
-        options={[]}
+        options={teams}
       />
 
       {user.isAthlete && (
@@ -140,7 +195,7 @@ export default function EditProfileForm({
             options={games}
             disabled={!isEditing}
           />
-          {!isIndividual && (
+          {!isIndividual && watchedGameId && (
             <>
               <SelectField
                 name="position"
@@ -155,7 +210,7 @@ export default function EditProfileForm({
                 placeholder="Ex: 10"
                 control={control}
                 keyboardType="numeric"
-                disabled={!isEditing}
+                disabled={isEditing}
               />
             </>
           )}
@@ -165,14 +220,26 @@ export default function EditProfileForm({
       {isEditing ? (
         <View style={styles(theme).buttonGroup}>
           <Button title="Salvar" onPress={handleSubmit(onSave)} />
-          <Button title="Cancelar" onPress={() => { setIsEditing(false); onCancel(); }} />
+          <Button title="Cancelar" onPress={() => {
+            setIsEditing(false);
+            if (playerData) {
+              reset({
+                username: user.username || '',
+                name: user.name,
+                favoriteTeam: user.favoriteTeam?.toString() ?? '',
+                position: playerData.position || '',
+                jerseyNumber: playerData.jerseyNumber?.toString() || '',
+                gameId: playerData.game?.id.toString() || '',
+              });
+            }
+          }} />
         </View>
       ) : (
-        <StyledText 
-            style={{ marginTop: 12, color: theme.greenLight, fontFamily: 'Poppins_600SemiBold', fontSize: 16 }} 
-            onPress={() => setIsEditing(true)}
+        <StyledText
+          style={{ marginTop: 12, color: theme.greenLight, fontFamily: 'Poppins_600SemiBold', fontSize: 16 }}
+          onPress={() => setIsEditing(true)}
         >
-                {"Editar Informações"}
+          {"Editar Informações"}
         </StyledText>
       )}
     </View>

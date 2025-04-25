@@ -1,21 +1,16 @@
+// src/components/profile/EditProfileForm.tsx
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-
-import { useTheme } from '@/hooks/useTheme';
-import { useSignUp } from '@/contexts/SignUpContext';
-import { ComboBoxField as SelectField } from '@/components/forms/ComboBoxField';
-import { CheckBox } from '@/components/forms/CheckBox';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { StyledText } from '@/components/StyledText';
 import { InputField } from '@/components/forms/InputField';
 import { Button } from '@/components/forms/Button';
+import { ComboBoxField as SelectField } from '@/components/forms/ComboBoxField';
+import { useTheme } from '@/hooks/useTheme';
+import { Player, User } from '@/types';
 import api from '@/utils/api';
-import { router } from 'expo-router';
-import { StyledText } from '@/components/StyledText';
-import { AppLoader } from '@/components/AppLoader';
-import { setUserRegistered } from '@/utils/storage';
-
 
 const positionOptions: Record<string, { label: string; value: string }[]> = {
   Futsal: [
@@ -39,28 +34,39 @@ const positionOptions: Record<string, { label: string; value: string }[]> = {
   ],
 };
 
-export default function SignUpTeamScreen() {
-  const theme = useTheme();
-  const { data, reset } = useSignUp();
-  const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
-  const [games, setGames] = useState<{ id: string; name: string }[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const gamesList = games;
+const individualGames = ['Tênis de Mesa', 'Xadrez'];
 
+export default function EditProfileForm({
+  user,
+  playerData,
+  onSave,
+  onCancel,
+  isEditing,
+  setIsEditing,
+}: {
+  user: User;
+  playerData?: Player;
+  onSave: (data: any) => void;
+  onCancel: () => void;
+  isEditing: boolean;
+  setIsEditing: (val: boolean) => void;
+}) {
+  const theme = useTheme();
+  const [games, setGames] = useState<{ id: string; name: string }[]>([]);
+  const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
 
   const schema = z
     .object({
-      team: z.union([z.string(), z.number()])
+      username: z.string().optional(),
+      name: z.string().min(3, 'Nome deve ter pelo menos 3 letras'),
+      favoriteTeam: z.union([z.string(), z.number()])
         .refine((val) => val !== '', { message: 'Escolha um time' })
         .transform((val) => String(val)),
-
-      modality: z.union([z.string(), z.number()])
+      gameId: z.union([z.string(), z.number()])
         .optional()
         .transform((val) => (val !== undefined ? String(val) : '')),
-
-      isAthlete: z.boolean(),
       position: z.string().optional(),
-      shirtNumber: z
+      jerseyNumber: z
         .string()
         .refine((val) => val === '' || /^[0-9]{1,2}$/.test(val), {
           message: 'Informe um número entre 1 e 99',
@@ -68,80 +74,57 @@ export default function SignUpTeamScreen() {
         .optional(),
     })
     .superRefine((data, ctx) => {
-      const modalityName = gamesList.find(
-        (game) => String(game.id) === String(data.modality)
+      const selectedModality = games.find(
+        (game) => String(game.id) === String(data.gameId)
       )?.name || '';
 
-      if (data.isAthlete) {
-        const isColetivo = ['Futsal', 'Handebol', 'Vôlei'].includes(modalityName);
-        if (!data.modality) {
+      const isColetivo = ['Futsal', 'Handebol', 'Vôlei'].includes(selectedModality);
+      if (user.isAthlete && selectedModality && isColetivo) {
+        if (!data.position) {
           ctx.addIssue({
-            path: ['modality'],
+            path: ['position'],
             code: z.ZodIssueCode.custom,
-            message: 'Escolha uma modalidade',
+            message: 'Escolha uma posição',
           });
         }
-
-        if (isColetivo) {
-          if (!data.position) {
-            ctx.addIssue({
-              path: ['position'],
-              code: z.ZodIssueCode.custom,
-              message: 'Escolha uma posição',
-            });
-          }
-
-          if (!data.shirtNumber) {
-            ctx.addIssue({
-              path: ['shirtNumber'],
-              code: z.ZodIssueCode.custom,
-              message: 'Informe o número da camisa',
-            });
-          }
+        if (!data.jerseyNumber) {
+          ctx.addIssue({
+            path: ['jerseyNumber'],
+            code: z.ZodIssueCode.custom,
+            message: 'Informe o número da camisa',
+          });
         }
       }
     });
-
-  type FormData = z.infer<typeof schema>;
 
   const {
     control,
     handleSubmit,
     watch,
+    reset,
     setValue,
-    formState: { isSubmitting },
-  } = useForm<FormData>({
+    formState: { errors },
+  } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      team: '',
-      isAthlete: false,
-      modality: '',
-      position: '',
-      shirtNumber: '',
+      username: user.username || '',
+      name: user.name,
+      favoriteTeam: user.favoriteTeam?.toString() ?? '',
+      gameId: playerData?.game.id.toString() ?? '',
+      position: playerData?.position ?? '',
+      jerseyNumber: playerData?.jerseyNumber?.toString() ?? '',
     },
   });
 
-  const selectedModalityId = watch('modality');
-  const isAthlete = watch('isAthlete');
-  const selectedModalityName = gamesList.find(
-    (game) => String(game.id) === String(selectedModalityId)
-  )?.name || '';
-  const availablePositions = positionOptions[selectedModalityName] ?? [];
-  const hasShirtNumber = ['Futsal', 'Handebol', 'Vôlei'].includes(selectedModalityName);
+  const selectedGameId = watch('gameId');
+  const selectedGameName = games.find((g) => String(g.id) === selectedGameId)?.name || '';
+  const positionList = positionOptions[selectedGameName] || [];
+  const isCollective = ['Futsal', 'Handebol', 'Vôlei'].includes(selectedGameName);
 
   useEffect(() => {
     setValue('position', '');
-    setValue('shirtNumber', '');
-  }, [selectedModalityId]);
-
-  // Reset and clear fields when isAthlete changes
-  useEffect(() => {
-    if (!isAthlete) {
-      setValue('modality', '');
-      setValue('position', '');
-      setValue('shirtNumber', '');
-    }
-  }, [isAthlete]);
+    setValue('jerseyNumber', '');
+  }, [selectedGameId]);
 
   useEffect(() => {
     async function fetchData() {
@@ -153,148 +136,93 @@ export default function SignUpTeamScreen() {
         setTeams(teamsRes.data);
         setGames(gamesRes.data);
       } catch (error) {
-        console.error('Erro ao buscar dados:', error);
-      } finally {
-        setIsLoading(false);
+        console.error('Erro ao carregar dados:', error);
       }
     }
-
     fetchData();
   }, []);
 
-  async function onSubmit(formData: FormData) {
-    try {
-      const {
-        name,
-        email,
-        password,
-        birthdate,
-      } = data;
-
-      const {
-        team,
-        isAthlete,
-        modality,
-        position,
-        shirtNumber,
-      } = formData;
-
-      // 1. Cria usuário no Supabase Auth
-      const { data: userAuthData } = await api.post('/auth/register', {
-        full_name: name,
-        email,
-        password,
-      });
-
-      // 2. Cadastra na tabela users
-      const { data: userData } = await api.post('/users', {
-        name,
-        authUserId: userAuthData.user.id,
-        email,
-        favoriteTeam: team,
-        profilePhoto: '', // se tiver
-        isAthlete,
-        birthDate: birthdate,
-      });
-
-      const userId = userData.id;
-      // 3. Se for atleta, cadastra também na tabela players
-      if (isAthlete && modality) {
-        await api.post('/players', {
-          userId,
-          position: position || null,
-          jerseyNumber: shirtNumber || null,
-          gameId: Number(modality),
-          teamId: Number(team),
-        });
-      }
-
-      reset();
-      await setUserRegistered(true);
-      router.replace({ pathname: '/success', params: { type: 'signup' } })
-    } catch (error) {
-      Alert.alert('Erro', 'Erro ao criar conta. Tente novamente.');
-    }
-  }
+  const handleCancel = () => {
+    reset();
+    setIsEditing(false);
+    onCancel();
+  };
 
   return (
-    <ScrollView contentContainerStyle={styles(theme).container}>
-      <StyledText style={styles(theme).title}>Escolha seu Time</StyledText>
+    <View style={styles(theme).form}>
+      <InputField
+        name="username"
+        label="@username"
+        placeholder="Escolha seu nome de usuário"
+        control={control}
+        disabled={!isEditing}
+      />
+      <InputField
+        name="name"
+        label="Nome"
+        placeholder="Nome do Usuário"
+        control={control}
+        disabled={!isEditing}
+      />
       <SelectField
-        name="team"
+        name="favoriteTeam"
         label="Time favorito"
         control={control}
-        options={teams.map((team) => ({
-          label: team.name,
-          value: team.id,
-        }))}
+        disabled={!isEditing}
+        options={teams.map((t) => ({ label: t.name, value: String(t.id) }))}
       />
 
-      <View style={{ marginBottom: 16 }}>
-        <CheckBox
-          label="Sou atleta"
-          value={isAthlete}
-          onChange={(val: boolean) => setValue('isAthlete', val)}
-        />
-      </View>
-
-      {isAthlete && (
-        <>
+      {user.isAthlete && (
+        <View style={{ marginTop: 16 }}>
+          <StyledText style={styles(theme).sectionTitle}>Dados de Atleta</StyledText>
           <SelectField
-            name="modality"
+            name="gameId"
             label="Modalidade"
             control={control}
-            options={games.map((game) => ({
-              label: game.name,
-              value: game.id,
-            }))}
+            options={games.map((g) => ({ label: g.name, value: String(g.id) }))}
+            disabled={!isEditing}
           />
-
-          {availablePositions.length > 0 && (
-            <SelectField
-              name="position"
-              label="Posição"
-              control={control}
-              options={availablePositions}
-            />
+          {isCollective && (
+            <>
+              <SelectField
+                name="position"
+                label="Posição"
+                control={control}
+                options={positionList}
+                disabled={!isEditing}
+              />
+              <InputField
+                name="jerseyNumber"
+                label="Número da camisa"
+                placeholder="Ex: 10"
+                control={control}
+                keyboardType="numeric"
+                disabled={!isEditing}
+              />
+            </>
           )}
-
-          {hasShirtNumber && (
-            <InputField
-              name="shirtNumber"
-              label="Número da camisa"
-              placeholder="Ex: 10"
-              control={control}
-              keyboardType="numeric"
-            />
-          )}
-        </>
+        </View>
       )}
 
-      <Button
-        title="Criar Conta"
-        onPress={handleSubmit(onSubmit)}
-        loading={isSubmitting}
-        style={{ marginTop: 24 }}
-      />
-      <AppLoader visible={isLoading} />
-    </ScrollView>
+      {isEditing ? (
+        <View style={styles(theme).buttonGroup}>
+          <Button title="Salvar" onPress={handleSubmit(onSave)} />
+          <Button title="Cancelar" onPress={handleCancel} />
+        </View>
+      ) : (
+        <StyledText
+          style={{ marginTop: 12, color: theme.greenLight, fontFamily: 'Poppins_600SemiBold', fontSize: 16 }}
+          onPress={() => setIsEditing(true)}
+        >
+          Editar Informações
+        </StyledText>
+      )}
+    </View>
   );
 }
 
-const styles = (theme: any) =>
-  StyleSheet.create({
-    container: {
-      flexGrow: 1,
-      padding: 24,
-      paddingVertical: 120,
-      backgroundColor: theme.white,
-    },
-    title: {
-      fontSize: 32,
-      textAlign: 'center',
-      marginBottom: 40,
-      fontWeight: 'bold',
-      color: theme.greenLight
-    },
-  });
+const styles = (theme: any) => StyleSheet.create({
+  form: { padding: 16 },
+  sectionTitle: { fontSize: 14, color: theme.gray, marginBottom: 4 },
+  buttonGroup: { gap: 8, marginTop: 16 },
+});

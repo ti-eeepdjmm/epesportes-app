@@ -1,5 +1,5 @@
 // src/components/HomeHeader.tsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Image, TextInput, TouchableOpacity, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,9 +12,12 @@ export function HomeHeader() {
   const router = useRouter();
   const { user } = useAuth();
   const { state, dispatch } = useNotifications();
+  const [ notifications, setNotifications ] = useState(0)
 
   // Calcula quantas notificações não lidas existem
-  const unreadCount = state.items.filter(n => !n.read).length;
+  useEffect(() => {
+     setNotifications(state.items.filter(n => !n.read).length);
+  },[state]);
   return (
     <View style={styles(theme).container}>
       <Image
@@ -40,9 +43,9 @@ export function HomeHeader() {
         }}
       >
         <BellIcon size={32} color={theme.greenLight} />
-        {unreadCount > 0 && (
+        {notifications > 0 && (
           <View style={styles(theme).badge}>
-            <Text style={styles(theme).badgeText}>{unreadCount}</Text>
+            <Text style={styles(theme).badgeText}>{notifications}</Text>
           </View>
         )}
       </TouchableOpacity>

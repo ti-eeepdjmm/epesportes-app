@@ -19,7 +19,7 @@ import ProfileInfoCard from '@/components/profile/ProfileInfoCard';
 import EditProfileForm from '@/components/profile/EditProfileForm';
 import api from '@/utils/api';
 import { clearTokens } from '@/utils/storage';
-import { UserPreferences } from '@/types';
+import { Player, UserPreferences, UserProfile } from '@/types';
 
 export default function ProfileScreen() {
   const theme = useTheme();
@@ -31,20 +31,26 @@ export default function ProfileScreen() {
   const [darkModeEnabled, setDarkModeEnabled] = useState(currentThemeKey === 'dark');
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [prefLoading, setPrefLoading] = useState(false);
-  const [playerLoading, setPlayerLoading] = useState(true);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [playerData, setPlayerData] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user?.isAthlete) {
-      api.get(`/players/user/${user.id}`).then(res => {
-        setPlayerData(res.data);
-      }).catch(() => console.error('Erro ao carregar dados do jogador')).finally(() => setPlayerLoading(false));
-    } else {
-      setPlayerLoading(false);
+    async function loadPreferences() {
+      try {
+        const res = await api.get<UserPreferences>(`/user-preferences/user/${user?.id}`);
+        setDarkModeEnabled(res.data.darkMode);
+        setNotificationsEnabled(res.data.notificationsEnabled);
+        setTheme(res.data.darkMode ? 'dark' : 'light');
+      } catch (err) {
+        console.error('Erro ao carregar preferências', err);
+      } finally {
+        setPrefLoading(false);
+        setLoading(false);
+      }
     }
-  }, []);
+    if (user) loadPreferences();
+  }, [user]);
 
   const handleLogout = async () => {
     try {
@@ -60,46 +66,51 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleSaveProfile = async (data: any) => {
+  const handleSaveProfile = async (profile: UserProfile) => {
     try {
-      const updatedUser = await api.patch(`/users/${user!.id}`, {
-        name: data.name,
-        favoriteTeam: data.favoriteTeam,
+      setLoading(true);
+      const updatedUser = await api.patch(`/users/${user?.id}`, {
+        name: profile.name,
+        favoriteTeam: profile.favoriteTeam,
+        username: profile.username,
       });
-
-      if (user!.isAthlete && playerData) {
-        await api.patch(`/players/${playerData.id}`, {
-          position: data.position,
-          jerseyNumber: data.jerseyNumber,
-          gameId: data.gameId,
+      if(user?.isAthlete){
+        const player = await api.get<Player>(`/players/user/${user?.id}`);
+        await api.patch(`/players/${player.data.id}`, {
+           team: profile.favoriteTeam,
+           game: profile.gameId,
+           position: profile.position,
+           jerseyNumber: profile.jerseyNumber,
         });
       }
 
       updateUser(updatedUser.data);
       setEditing(false);
+      setLoading(false);
+      Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
     } catch (err) {
       Alert.alert('Erro', 'Não foi possível atualizar o perfil.');
+      setLoading(false);
     }
   };
-
-  const loading = prefLoading || logoutLoading || playerLoading;
 
   return (
     <>
       <ScrollView style={{ backgroundColor: theme.white }} contentContainerStyle={{ paddingBottom: 40 }}>
         <StyledText style={[styles(theme).title, { fontSize: 24 }]}>Perfil</StyledText>
         <Separator />
-
-        <ProfileInfoCard user={user!} onEditPhoto={() => {}} />
-
-        <EditProfileForm
-          user={user!}
-          playerData={playerData}
-          onSave={handleSaveProfile}
-          onCancel={() => setEditing(false)}
-          isEditing={editing}
-          setIsEditing={setEditing}
-        />
+        {user ? (
+          <>
+            <ProfileInfoCard user={user} onEditPhoto={() => { }} />
+            <EditProfileForm
+              user={user}
+              onSave={handleSaveProfile}
+              onCancel={() => setEditing(false)}
+              isEditing={editing}
+              setIsEditing={setEditing}
+            />
+          </>
+        ) : null}
 
         <Separator />
 
@@ -110,7 +121,7 @@ export default function ProfileScreen() {
           onChange={(val) => {
             setDarkModeEnabled(val);
             setTheme(val ? 'dark' : 'light');
-            api.patch('/user-preferences', { darkMode: val });
+            api.patch(`/user-preferences`, { darkMode: val });
           }}
           icon={<MoonIcon size={24} color={theme.black} />}
         />
@@ -145,7 +156,7 @@ export default function ProfileScreen() {
           showArrow={false}
         />
       </ScrollView>
-      <AppLoader visible={loading} />
+      <AppLoader visible={loading || logoutLoading || prefLoading} />
     </>
   );
 }

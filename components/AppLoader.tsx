@@ -52,7 +52,7 @@ export function AppLoader({ visible }: AppLoaderProps) {
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.66)', // leve esmaecimento
+        backgroundColor: 'rgba(255, 255, 255, 0.80)', // leve esmaecimento
         justifyContent: 'center',
         alignItems: 'center',
     },
