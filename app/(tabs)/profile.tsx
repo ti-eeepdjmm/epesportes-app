@@ -71,13 +71,13 @@ export default function ProfileScreen() {
       setLoading(true);
       const updatedUser = await api.patch(`/users/${user?.id}`, {
         name: profile.name,
-        favoriteTeam: profile.favoriteTeam,
+        favoriteTeam: profile.favoriteTeam?.id,
         username: profile.username,
       });
       if(user?.isAthlete){
         const player = await api.get<Player>(`/players/user/${user?.id}`);
         await api.patch(`/players/${player.data.id}`, {
-           team: profile.favoriteTeam,
+           team: profile.favoriteTeam?.id,
            game: profile.gameId,
            position: profile.position,
            jerseyNumber: profile.jerseyNumber,

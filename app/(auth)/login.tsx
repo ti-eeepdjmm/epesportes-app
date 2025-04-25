@@ -81,6 +81,7 @@ export default function LoginScreen() {
         isAthlete: localUser.isAthlete,
         birthDate: localUser.birthDate,
         hasPasswordLogin: true,
+        username: localUser.username,
       })
   
       // 4) Redireciona

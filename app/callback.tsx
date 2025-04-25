@@ -62,6 +62,7 @@ export default function Callback() {
           isAthlete: localUSer.isAthlete,
           birthDate: localUSer.birthDate,
           hasPasswordLogin: user?.app_metadata.providers?.includes('email'),
+          username: localUSer.username,
         })
 
         // finalmente, roteia pra tela certa
@@ -99,8 +100,9 @@ async function getOrCreateLocalUser(user:User): Promise<LocalUser> {
         authUserId: user.id,
         name: user.user_metadata.full_name,
         email: user.email,
-        favoriteTeam: null,
+        favoriteTeamId: null,
         profilePhoto: user.user_metadata.avatar_url ?? null,
+        username: null,
         isAthlete: false,
         birthDate: null,
       }

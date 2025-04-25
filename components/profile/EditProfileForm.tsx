@@ -99,10 +99,10 @@ export default function EditProfileForm({
     defaultValues: {
       username: user.username || '',
       name: user.name,
-      favoriteTeam: user.favoriteTeam?.toString() ?? '',
-      position: '',
+      favoriteTeam: user.favoriteTeam?.id.toString() || '',
       jerseyNumber: '',
       gameId: '',
+      position: '',
     },
   });
 
@@ -121,17 +121,7 @@ export default function EditProfileForm({
 
         if (user.isAthlete) {
           const res = await api.get<Player>(`/players/user/${user.id}`);
-          const player = res.data;
-          setPlayerData(player);
-
-          reset({
-            username: user.username || '',
-            name: user.name,
-            favoriteTeam: user.favoriteTeam?.toString() ?? '',
-            jerseyNumber: player.jerseyNumber?.toString() || '',
-            gameId: player.game?.id.toString() || '',
-            position: player.position || '',
-          });
+          setPlayerData(res.data);
         }
       } catch (err) {
         console.error('Erro ao carregar dados iniciais', err);
@@ -146,13 +136,42 @@ export default function EditProfileForm({
     const selectedGame = games.find(g => g.value === watchedGameId);
     const label = selectedGame?.label?.toLowerCase() || '';
     setSelectedGameLabel(label);
-
-    if (label) {
+  
+    // só limpa se for troca manual, e os campos estão vazios
+    const shouldClear = !watch('position') && !watch('jerseyNumber');
+  
+    if (label && shouldClear) {
       setValue('position', '');
       setValue('jerseyNumber', '');
       clearErrors(['position', 'jerseyNumber']);
     }
   }, [watchedGameId]);
+
+  useEffect(() => {
+    if (!loading && games.length && teams.length) {
+    
+      if (user.isAthlete && playerData) {
+        reset({
+          username: user.username || '',
+          name: user.name,
+          favoriteTeam: user.favoriteTeam?.id.toString() || '',
+          jerseyNumber: playerData.jerseyNumber?.toString() || '',
+          gameId: playerData.game?.id.toString() || '',
+          position: playerData.position || '',
+        });
+      } else {
+        reset({
+          username: user.username || '',
+          name: user.name,
+          favoriteTeam: user.favoriteTeam?.id.toString() || '',
+          jerseyNumber: '',
+          gameId: '',
+          position: '',
+        });
+      }
+    }
+  }, [loading, games, teams, playerData]);
+  
 
   const isIndividual = individualGames.includes(selectedGameLabel);
   const positionOptions = positionsBySport[selectedGameLabel] || [];
@@ -226,7 +245,7 @@ export default function EditProfileForm({
               reset({
                 username: user.username || '',
                 name: user.name,
-                favoriteTeam: user.favoriteTeam?.toString() ?? '',
+                favoriteTeam: user.favoriteTeam?.id.toString() || '',
                 position: playerData.position || '',
                 jerseyNumber: playerData.jerseyNumber?.toString() || '',
                 gameId: playerData.game?.id.toString() || '',

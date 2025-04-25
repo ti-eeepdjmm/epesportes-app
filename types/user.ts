@@ -3,7 +3,7 @@ export interface User {
   authUserId: string;
   name: string;
   email: string;
-  favoriteTeam: number | null;
+  favoriteTeam: Team | null;
   profilePhoto: string | null;
   isAthlete: boolean;
   username: string;
@@ -29,7 +29,7 @@ export interface Player{
 export interface UserProfile{
   username: string | null;
   name: string;
-  favoriteTeam: number;
+  favoriteTeam: Team | null;
   profilePhoto: string;
   isAthlete: boolean;
   position: string | null;
