@@ -1,6 +1,6 @@
 // src/screens/ProfileScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Alert, StyleSheet } from 'react-native';
+import { ScrollView, Alert, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,13 +31,14 @@ export default function ProfileScreen() {
   const [darkModeEnabled, setDarkModeEnabled] = useState(currentThemeKey === 'dark');
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [prefLoading, setPrefLoading] = useState(false);
+  const [savingProfileLoading, setSavingProfileLoading] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadPreferences() {
       try {
+        setPrefLoading(true);
         const res = await api.get<UserPreferences>(`/user-preferences/user/${user?.id}`);
         setDarkModeEnabled(res.data.darkMode);
         setNotificationsEnabled(res.data.notificationsEnabled);
@@ -46,7 +47,6 @@ export default function ProfileScreen() {
         console.error('Erro ao carregar preferências', err);
       } finally {
         setPrefLoading(false);
-        setLoading(false);
       }
     }
     if (user) loadPreferences();
@@ -66,31 +66,33 @@ export default function ProfileScreen() {
     }
   };
 
+
+
   const handleSaveProfile = async (profile: UserProfile) => {
     try {
-      setLoading(true);
+      setSavingProfileLoading(true);
       const updatedUser = await api.patch(`/users/${user?.id}`, {
         name: profile.name,
-        favoriteTeam: profile.favoriteTeam?.id,
+        favoriteTeam: profile.favoriteTeam,
         username: profile.username,
       });
-      if(user?.isAthlete){
+
+      if (user?.isAthlete) {
         const player = await api.get<Player>(`/players/user/${user?.id}`);
         await api.patch(`/players/${player.data.id}`, {
-           team: profile.favoriteTeam?.id,
-           game: profile.gameId,
-           position: profile.position,
-           jerseyNumber: profile.jerseyNumber,
+          team: profile.favoriteTeam,
+          game: profile.gameId,
+          position: profile.position || null,
+          jerseyNumber: profile.jerseyNumber || null,
         });
       }
 
       updateUser(updatedUser.data);
       setEditing(false);
-      setLoading(false);
-      Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
     } catch (err) {
       Alert.alert('Erro', 'Não foi possível atualizar o perfil.');
-      setLoading(false);
+    } finally {
+      setSavingProfileLoading(false);
     }
   };
 
@@ -156,7 +158,11 @@ export default function ProfileScreen() {
           showArrow={false}
         />
       </ScrollView>
-      <AppLoader visible={loading || logoutLoading || prefLoading} />
+      {!editing && (savingProfileLoading || logoutLoading || prefLoading) && (
+        <View style={styles(theme).fullScreenLoader}>
+          <AppLoader visible />
+        </View>
+      )}
     </>
   );
 }
@@ -180,5 +186,12 @@ const styles = (theme: any) =>
       fontFamily: 'Poppins_600SemiBold',
       color: theme.black,
       paddingHorizontal: 16,
+    },
+    fullScreenLoader: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(255,255,255,0.7)', // ou transparente se preferir
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 999,
     },
   });

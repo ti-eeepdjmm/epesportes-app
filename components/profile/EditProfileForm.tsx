@@ -1,6 +1,6 @@
 // src/components/profile/EditProfileForm.tsx
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,9 +9,8 @@ import { InputField } from '@/components/forms/InputField';
 import { Button } from '@/components/forms/Button';
 import { ComboBoxField as SelectField } from '@/components/forms/ComboBoxField';
 import { useTheme } from '@/hooks/useTheme';
-import { Player, User } from '@/types';
+import { Game, Player, Team, User } from '@/types';
 import api from '@/utils/api';
-import { AppLoader } from '@/components/AppLoader';
 
 const individualGames = ['tênis de mesa', 'xadrez'];
 
@@ -37,6 +36,8 @@ const positionsBySport: Record<string, { label: string; value: string }[]> = {
   ],
 };
 
+
+
 export default function EditProfileForm({
   user,
   onSave,
@@ -54,8 +55,8 @@ export default function EditProfileForm({
   const [games, setGames] = useState<{ label: string; value: string }[]>([]);
   const [teams, setTeams] = useState<{ label: string; value: string }[]>([]);
   const [playerData, setPlayerData] = useState<Player | null>(null);
-  const [loading, setLoading] = useState(true);
   const [selectedGameLabel, setSelectedGameLabel] = useState('');
+  const [formLoading, setFormLoading] = useState(false);
 
   const schema = z
     .object({
@@ -108,16 +109,48 @@ export default function EditProfileForm({
 
   const watchedGameId = watch('gameId');
 
+  const handleSave = async (data: any) => {
+      const selectedTeam = teams.find(t => t.value === data.favoriteTeam);
+
+      if (!selectedTeam) {
+        console.error('Time favorito não encontrado.');
+        return;
+      }
+
+      const updatedData = {
+        ...data,
+        favoriteTeam: {
+          id: Number(selectedTeam.value),
+          name: selectedTeam.label,
+        },
+      };
+      onSave(updatedData);
+  };
+
+  const handleClickSave = async () => {
+    setFormLoading(true); 
+    setIsEditing(false);
+  
+    try {
+      await handleSubmit(handleSave)(); 
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   useEffect(() => {
     async function loadData() {
       try {
+        setFormLoading(true);
         const [gamesRes, teamsRes] = await Promise.all([
-          api.get('/games'),
-          api.get('/teams'),
+          api.get<Game[]>('/games'),
+          api.get<Team[]>('/teams'),
         ]);
 
-        setGames(gamesRes.data.map((g: any) => ({ label: g.name, value: String(g.id) })));
-        setTeams(teamsRes.data.map((t: any) => ({ label: t.name, value: String(t.id) })));
+        setGames(gamesRes.data.map((g: Game) => ({ label: g.name, value: String(g.id) })));
+        setTeams(teamsRes.data.map((t: Team) => ({ label: t.name, value: String(t.id) })));
 
         if (user.isAthlete) {
           const res = await api.get<Player>(`/players/user/${user.id}`);
@@ -126,7 +159,7 @@ export default function EditProfileForm({
       } catch (err) {
         console.error('Erro ao carregar dados iniciais', err);
       } finally {
-        setLoading(false);
+        setFormLoading(false);
       }
     }
     loadData();
@@ -136,11 +169,8 @@ export default function EditProfileForm({
     const selectedGame = games.find(g => g.value === watchedGameId);
     const label = selectedGame?.label?.toLowerCase() || '';
     setSelectedGameLabel(label);
-  
-    // só limpa se for troca manual, e os campos estão vazios
-    const shouldClear = !watch('position') && !watch('jerseyNumber');
-  
-    if (label && shouldClear) {
+
+    if (isEditing) {
       setValue('position', '');
       setValue('jerseyNumber', '');
       clearErrors(['position', 'jerseyNumber']);
@@ -148,8 +178,8 @@ export default function EditProfileForm({
   }, [watchedGameId]);
 
   useEffect(() => {
-    if (!loading && games.length && teams.length) {
-    
+    if (!formLoading && games.length && teams.length) {
+
       if (user.isAthlete && playerData) {
         reset({
           username: user.username || '',
@@ -170,13 +200,11 @@ export default function EditProfileForm({
         });
       }
     }
-  }, [loading, games, teams, playerData]);
-  
+  }, [formLoading, games, teams, playerData]);
+
 
   const isIndividual = individualGames.includes(selectedGameLabel);
   const positionOptions = positionsBySport[selectedGameLabel] || [];
-
-  if (loading) return <AppLoader visible={loading} />;
 
   return (
     <View style={styles(theme).form}>
@@ -238,7 +266,7 @@ export default function EditProfileForm({
 
       {isEditing ? (
         <View style={styles(theme).buttonGroup}>
-          <Button title="Salvar" onPress={handleSubmit(onSave)} />
+         <Button title="Salvar" onPress={handleClickSave} disabled={formLoading} />
           <Button title="Cancelar" onPress={() => {
             setIsEditing(false);
             if (playerData) {
@@ -261,7 +289,13 @@ export default function EditProfileForm({
           {"Editar Informações"}
         </StyledText>
       )}
+      {formLoading && (
+        <View style={styles(theme).overlay}>
+          <ActivityIndicator size="large" color={theme.greenLight} />
+        </View>
+      )}
     </View>
+
   );
 }
 
@@ -269,4 +303,11 @@ const styles = (theme: any) => StyleSheet.create({
   form: { padding: 16 },
   sectionTitle: { fontSize: 14, color: theme.gray, marginBottom: 4 },
   buttonGroup: { gap: 8, marginTop: 16 },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
 });

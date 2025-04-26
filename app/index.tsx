@@ -46,6 +46,8 @@ export default function StartApp() {
         // 2) Sem deep link: fluxo normal
         const token = await getAccessToken();
         const registered = await isUserRegistered();
+        clearTokens()
+        signOut();
        
 
         if (!token) {
