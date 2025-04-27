@@ -1,6 +1,11 @@
-import React, { useEffect, useCallback } from 'react';
+// app/_layout.tsx
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Slot, useRouter } from 'expo-router';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import * as SplashScreen from 'expo-splash-screen';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+import { StatusBar } from 'expo-status-bar';
 import {
   useFonts,
   Poppins_400Regular,
@@ -8,20 +13,19 @@ import {
   Poppins_600SemiBold,
   Poppins_700Bold,
 } from '@expo-google-fonts/poppins';
-import * as SplashScreen from 'expo-splash-screen';
-import { AppLoader } from '@/components/AppLoader';
-import * as WebBrowser from 'expo-web-browser';
-import * as Linking from 'expo-linking';
-import { StatusBar } from 'expo-status-bar';
+
 import { ThemeProvider, useThemeContext } from '@/contexts/ThemeContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SocketProvider } from '@/contexts/SocketContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 
-// Completa sessões de autenticação web
+import api from '@/utils/api';
+import { getAccessToken, isUserRegistered, clearTokens } from '@/utils/storage';
+
+// Completa magic-link web
 WebBrowser.maybeCompleteAuthSession();
 
-// Previna o auto-hide da splash até que o app esteja pronto
+// Previna o splash de sumir até chamarmos hideAsync()
 SplashScreen.preventAutoHideAsync().catch(console.warn);
 
 export default function RootLayout() {
@@ -43,63 +47,101 @@ function AppEntry() {
     Poppins_600SemiBold,
     Poppins_700Bold,
   });
+  const [ready, setReady] = useState(false);
+  const router = useRouter();
+  const { signOut } = useAuth();
 
-  const colorScheme = useThemeContext().theme ?? 'dark';
+  const bootstrap = useCallback(async () => {
+    try {
+      if (!fontsLoaded) return;
 
-  const onReady = useCallback(async () => {
-    if (fontsLoaded) {
-      try {
-        await SplashScreen.hideAsync();
-      } catch (error) {
-        console.warn('Erro ao esconder SplashScreen:', error);
+      const initialUrl = await Linking.getInitialURL();
+      if (initialUrl?.includes('callback')) {
+        router.replace({
+          pathname: '/callback',
+          params: { url: encodeURIComponent(initialUrl) },
+        });
+        return;
       }
+
+      const token = await getAccessToken();
+      const registered = await isUserRegistered();
+      if (!token) {
+        router.replace(registered ? '/(auth)/login' : '/(onboarding)/start');
+      } else {
+        try {
+          await api.get('/auth/me');
+          router.replace('/(tabs)');
+        } catch {
+          await clearTokens();
+          await signOut();
+          router.replace('/(auth)/login');
+        }
+      }
+    } catch (err) {
+      console.error('Bootstrap error:', err);
+      await clearTokens();
+      await signOut();
+      router.replace('/(auth)/login');
+    } finally {
+      setReady(true);
+      // não escondemos o splash aqui; faremos no onLayout
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, router, signOut]);
 
   useEffect(() => {
-    onReady();
-  }, [onReady]);
+    bootstrap();
+  }, [bootstrap]);
 
-  if (!fontsLoaded) {
-    return <AppLoader visible />;
+  // Enquanto não estivermos prontos, mantemos o splash visível
+  if (!ready || !fontsLoaded) {
+    return null;
   }
 
-  return <RenderApp colorScheme={colorScheme} />;
+  return <RenderApp />;
 }
 
-function RenderApp({ colorScheme }: { colorScheme: 'light' | 'dark' }) {
+function RenderApp() {
   const { user } = useAuth();
-  useDeepLinkRedirect();
-
-  return (
-    <SocketProvider userId={user?.authUserId ?? ''}>
-      <NotificationProvider>
-        <SafeAreaView style={{ flex: 1 }}>
-          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-          <Slot />
-        </SafeAreaView>
-      </NotificationProvider>
-    </SocketProvider>
-  );
-}
-
-function useDeepLinkRedirect() {
+  const theme = useThemeContext().theme === 'dark' ? '#000' : '#FFF';
   const router = useRouter();
   const url = Linking.useURL();
 
+  // Reset magic-link em runtime
   useEffect(() => {
     (async () => {
-      const initialUrl = await Linking.getInitialURL();
-      const incoming = url ?? initialUrl;
+      const incoming = url ?? (await Linking.getInitialURL());
       if (!incoming) return;
-
-      const callbackUrl = Linking.createURL('callback');
-      if (incoming.startsWith(callbackUrl)) {
+      const cb = Linking.createURL('callback');
+      if (incoming.startsWith(cb)) {
         router.replace({
           pathname: '/callback',
           params: { url: encodeURIComponent(incoming) },
         });
       }
     })();
-  }, [url]);
+  }, [url, router]);
+
+  // Esconde o splash só após a primeira pintura do React
+  const hasHidden = useRef(false);
+  const onLayoutRootView = useCallback(async () => {
+    if (!hasHidden.current) {
+      hasHidden.current = true;
+      await SplashScreen.hideAsync();
+    }
+  }, []);
+
+  return (
+    <SocketProvider userId={user?.authUserId ?? ''}>
+      <NotificationProvider>
+        <SafeAreaView
+          style={{ flex: 1, backgroundColor: theme }}
+          onLayout={onLayoutRootView}
+        >
+          <StatusBar style={theme === '#000' ? 'light' : 'dark'} />
+          <Slot />
+        </SafeAreaView>
+      </NotificationProvider>
+    </SocketProvider>
+  );
 }

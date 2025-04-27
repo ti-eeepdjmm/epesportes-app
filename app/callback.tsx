@@ -1,95 +1,100 @@
 // app/callback.tsx
-import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect } from 'react'
-import * as QueryParams from 'expo-auth-session/build/QueryParams'
-import { supabase } from '@/utils/supabase'
-import { useAuth } from '@/contexts/AuthContext'
-import { setTokens } from '@/utils/storage'
-import api from '@/utils/api'
-import { User } from '@supabase/supabase-js'
-import { User as LocalUser } from '@/types'
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect } from 'react';
+import * as QueryParams from 'expo-auth-session/build/QueryParams';
+import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { setTokens } from '@/utils/storage';
+import api from '@/utils/api';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import type { User as LocalUser } from '@/types';
 
 export default function Callback() {
-  const { url: encodedUrl } =
-    useLocalSearchParams<{ url?: string }>()
-  const router = useRouter()
-  const { signIn } = useAuth()
+  const { url: encodedUrl } = useLocalSearchParams<{ url?: string }>();
+  const router = useRouter();
+  const { signIn } = useAuth();
 
   useEffect(() => {
-    if (!encodedUrl) return
-    const fullUrl = decodeURIComponent(encodedUrl)
+    async function handle() {
+      if (!encodedUrl) {
+        router.replace('/(auth)/login');
+        return;
+      }
 
-    // extrai tanto query ?type=… quanto fragment #access_token=…&…
-    const { params, errorCode } = QueryParams.getQueryParams(fullUrl)
-    if (errorCode || !params.access_token || !params.refresh_token) {
-      console.error('Erro ao parsear deep link:', errorCode)
-      router.replace('/(auth)/login')
-      return
-    }
+      try {
+        const fullUrl = decodeURIComponent(encodedUrl);
+        const { params, errorCode } = QueryParams.getQueryParams(fullUrl);
 
-    const { access_token, refresh_token, type } = params
-    // seta a sessão completa
-    supabase.auth
-      .setSession({ access_token, refresh_token })
-      .then(async () => {
-        // salva os tokens no AsyncStorage
-        await setTokens({
-          accessToken: access_token,
-          refreshToken: refresh_token,
-        })
+        if (errorCode || !params.access_token || !params.refresh_token) {
+          router.replace('/(auth)/login');
+          return;
+        }
+
+        const { access_token, refresh_token, type } = params;
+
+        // 1) Seta sessão no Supabase
+        await supabase.auth.setSession({ access_token, refresh_token });
+
+        // 2) Salva tokens localmente
+        await setTokens({ accessToken: access_token, refreshToken: refresh_token });
+
+        // 3) Pega dados do usuário no Supabase
         const {
           data: { user },
           error: userErr,
-        } = await supabase.auth.getUser()
-        if (userErr || !user) throw userErr
+        } = await supabase.auth.getUser();
 
-        //verifica se o usuário já existe na API
-        // se não existe, cria um registro parcial
+        if (userErr || !user) throw userErr;
+
+
+        // 4) Busca ou cria usuário na sua API
         const localUser = await getOrCreateLocalUser(user);
-        
-        // salva no seu contexto
+
+        // 5) Atualiza o contexto de autenticação
         await signIn(access_token, {
           id: localUser.id,
           authUserId: user.id,
           name: localUser.name,
           email: localUser.email,
-          profilePhoto: localUser.profilePhoto || user.user_metadata.avatar_url,
+          profilePhoto: localUser.profilePhoto ?? user.user_metadata.avatar_url,
           favoriteTeam: localUser.favoriteTeam,
           isAthlete: localUser.isAthlete,
           birthDate: localUser.birthDate,
-          hasPasswordLogin: user?.app_metadata.providers?.includes('email'),
+          hasPasswordLogin: user.app_metadata.providers?.includes('email'),
           username: localUser.username,
           createdAt: localUser.createdAt,
-        })
+        });
 
-        // finalmente, roteia pra tela certa
+        // 6) Roteia para a tela correta
         if (type === 'recovery') {
-          router.replace({ pathname: '/reset-password', params: { token: access_token } })
+          router.replace({ pathname: '/reset-password', params: { token: access_token } });
         } else if (type === 'signup') {
-          router.replace({ pathname: '/success', params: { type: 'confirmation' } })
+          router.replace({ pathname: '/success', params: { type: 'confirmation' } });
         } else {
-          router.replace({ pathname: '/(tabs)' })
+          router.replace('/(tabs)');
         }
-      })
-      .catch((err) => {
-        console.error('Erro no setSession:', err)
-        router.replace('/(auth)/login')
-      })
-  }, [encodedUrl])
+      } catch {
+        router.replace('/(auth)/login');
+      }
+    }
+
+    handle();
+  }, [encodedUrl, router, signIn]);
+
+  return null;
 }
 
-
-async function getOrCreateLocalUser(user:User): Promise<LocalUser> {
+async function getOrCreateLocalUser(user: SupabaseUser): Promise<LocalUser> {
   if (!user.email) {
-    throw new Error('User email is required to fetch/create local user.')
+    throw new Error('User email is required');
   }
 
   try {
-    // 1) Tenta puxar o perfil existente
-    const { data } = await api.get<LocalUser>(`/users/email/${user.email}`)
-    return data
+    // 1) Tenta buscar perfil existente
+    const { data } = await api.get<LocalUser>(`/users/email/${user.email}`);
+    return data;
   } catch (err: any) {
-    // 2) Se der 404, cria novo; caso contrário, relança
+    // 2) Se 404, cria novo; senão, relança
     if (err.response?.status === 404) {
       const payload = {
         authUserId: user.id,
@@ -100,12 +105,10 @@ async function getOrCreateLocalUser(user:User): Promise<LocalUser> {
         username: null,
         isAthlete: false,
         birthDate: null,
-      }
-      const { data } = await api.post<LocalUser>('/users', payload)
-      return data
-    } else {
-      console.error('Erro ao buscar/criar usuário na API', err)
-      throw err
+      };
+      const { data } = await api.post<LocalUser>('/users', payload);
+      return data;
     }
+    throw err;
   }
 }

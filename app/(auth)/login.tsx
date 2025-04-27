@@ -61,17 +61,18 @@ export default function LoginScreen() {
       setUserLoading(true)
   
       // 1) Chama sua API
-      const res = await api.post<User>('/auth/login', {
+      const res = await api.post('/auth/login', {
         email: form.email,
         password: form.password,
       })
   
       // 2) Extrai user + tokens
-      const user = res.data
+      const user = res.data.user
       const accessToken = await getAccessToken();
   
       // 3) Faz o signIn no contexto
-      const { data: localUser } = await api.get<LocalUser>(`/users/email/${user.email}`)
+      const { data: localUser } = await api.get<LocalUser>(`/users/email/${user.email}`);
+      
       await signIn(accessToken!, {
         id: localUser.id,
         authUserId: user.id,

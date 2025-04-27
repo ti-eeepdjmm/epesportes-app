@@ -63,14 +63,19 @@ const schema = z
   username: z
     .string()
     .min(3, 'Username deve ter ao menos 3 caracteres')
-    .regex(/^[a-z0-9_.]+$/, 'Username inválido. Use apenas letras minúsculas, números, underscore ou ponto')
+    .regex(/^[a-z0-9_.]+$/, 'Use apenas letras minúsculas, números, underscore ou ponto')
     .refine(async (username) => {
       // Checar se o username já existe
       try{
         const res = await api.get<{ available: boolean }>(`/users/check-username/${username}`);
         return res.data.available === true
       }catch(err){
-        return false
+        if(user.username === username){
+          return true
+        }else{
+          return false
+        }
+       
       }
     }, 'Usename não disponível'),
   name: z.string().min(3, 'Nome deve ter pelo menos 3 letras'),
