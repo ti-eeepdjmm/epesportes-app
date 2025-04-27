@@ -34,29 +34,39 @@ export default function ProfileScreen() {
   const [savingProfileLoading, setSavingProfileLoading] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [preferences, setPreferences] = useState<UserPreferences>()
 
   useEffect(() => {
     async function loadPreferences() {
       try {
         setPrefLoading(true);
         const res = await api.get<UserPreferences>(`/user-preferences/user/${user?.id}`);
+        setPreferences(res.data)
         setDarkModeEnabled(res.data.darkMode);
         setNotificationsEnabled(res.data.notificationsEnabled);
         setTheme(res.data.darkMode ? 'dark' : 'light');
       } catch (err) {
-        console.error('Erro ao carregar preferências', err);
+        const res = await api.post<UserPreferences>('/user-preferences/', {
+          user: user?.id,
+          darkMode: false,
+          notificationsEnabled: false
+        });
+        setPreferences(res.data)
       } finally {
         setPrefLoading(false);
       }
     }
-    if (user) loadPreferences();
-  }, [user]);
+    if (user?.id) loadPreferences();
+  }, [user?.id]);
 
   const handleLogout = async () => {
     try {
       setLogoutLoading(true);
       await signOut();
       await clearTokens();
+      setDarkModeEnabled(false);
+      setNotificationsEnabled(false);
+      setTheme('light');
       dispatch({ type: 'RESET' });
       router.replace('/(auth)/login');
     } catch (err) {
@@ -65,8 +75,6 @@ export default function ProfileScreen() {
       setLogoutLoading(false);
     }
   };
-
-
 
   const handleSaveProfile = async (profile: UserProfile) => {
     try {
@@ -86,13 +94,12 @@ export default function ProfileScreen() {
           jerseyNumber: profile.jerseyNumber || null,
         });
       }
-
       updateUser(updatedUser.data);
-      setEditing(false);
     } catch (err) {
       Alert.alert('Erro', 'Não foi possível atualizar o perfil.');
     } finally {
       setSavingProfileLoading(false);
+      setEditing(false);
     }
   };
 
@@ -123,7 +130,7 @@ export default function ProfileScreen() {
           onChange={(val) => {
             setDarkModeEnabled(val);
             setTheme(val ? 'dark' : 'light');
-            api.patch(`/user-preferences`, { darkMode: val });
+            api.patch(`/user-preferences/${preferences!.id}`, { darkMode: val });
           }}
           icon={<MoonIcon size={24} color={theme.black} />}
         />
@@ -135,7 +142,7 @@ export default function ProfileScreen() {
           value={notificationsEnabled}
           onChange={(val) => {
             setNotificationsEnabled(val);
-            api.patch('/user-preferences', { notificationsEnabled: val });
+            api.patch(`/user-preferences/${preferences!.id}`, { notificationsEnabled: val });
           }}
           icon={<BellIcon size={24} color={theme.black} />}
         />

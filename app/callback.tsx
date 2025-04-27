@@ -3,7 +3,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect } from 'react'
 import * as QueryParams from 'expo-auth-session/build/QueryParams'
 import { supabase } from '@/utils/supabase'
-import { AppLoader } from '@/components/AppLoader'
 import { useAuth } from '@/contexts/AuthContext'
 import { setTokens } from '@/utils/storage'
 import api from '@/utils/api'
@@ -15,7 +14,6 @@ export default function Callback() {
     useLocalSearchParams<{ url?: string }>()
   const router = useRouter()
   const { signIn } = useAuth()
-
 
   useEffect(() => {
     if (!encodedUrl) return
@@ -30,8 +28,6 @@ export default function Callback() {
     }
 
     const { access_token, refresh_token, type } = params
-
-
     // seta a sessão completa
     supabase.auth
       .setSession({ access_token, refresh_token })
@@ -49,20 +45,21 @@ export default function Callback() {
 
         //verifica se o usuário já existe na API
         // se não existe, cria um registro parcial
-        const localUSer = await getOrCreateLocalUser(user);
+        const localUser = await getOrCreateLocalUser(user);
         
         // salva no seu contexto
         await signIn(access_token, {
-          id: localUSer.id,
+          id: localUser.id,
           authUserId: user.id,
-          name: localUSer.name,
-          email: localUSer.email,
-          profilePhoto: localUSer.profilePhoto || user.user_metadata.avatar_url,
-          favoriteTeam: localUSer.favoriteTeam,
-          isAthlete: localUSer.isAthlete,
-          birthDate: localUSer.birthDate,
+          name: localUser.name,
+          email: localUser.email,
+          profilePhoto: localUser.profilePhoto || user.user_metadata.avatar_url,
+          favoriteTeam: localUser.favoriteTeam,
+          isAthlete: localUser.isAthlete,
+          birthDate: localUser.birthDate,
           hasPasswordLogin: user?.app_metadata.providers?.includes('email'),
-          username: localUSer.username,
+          username: localUser.username,
+          createdAt: localUser.createdAt,
         })
 
         // finalmente, roteia pra tela certa
@@ -79,8 +76,6 @@ export default function Callback() {
         router.replace('/(auth)/login')
       })
   }, [encodedUrl])
-
-  return <AppLoader visible />
 }
 
 

@@ -9,12 +9,14 @@ export interface User {
   username: string;
   birthDate: string | null;
   hasPasswordLogin: boolean;
+  createdAt: string;
 }
 
 export interface UserPreferences {
+  id: number;
   darkMode: boolean;
   notificationsEnabled: boolean;
-  userId: number;
+  user: User;
 }
 
 export interface Player{

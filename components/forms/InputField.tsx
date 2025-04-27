@@ -52,7 +52,7 @@ export function InputField({
           isFocused && styles(theme).focusedInput,
           error && styles(theme).errorInput,
         ]}
-        editable={disabled}
+        editable={!disabled}
       />
       {secure && (
         <Pressable

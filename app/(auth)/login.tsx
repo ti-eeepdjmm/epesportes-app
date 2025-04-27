@@ -25,6 +25,7 @@ import { REDIRECT_URI } from '@/utils/deep'  // já gerado com makeRedirectUri
 import axios, { AxiosError } from 'axios'
 import { User as LocalUser } from '@/types'
 import { getAccessToken } from '@/utils/storage'
+import { User } from '@supabase/supabase-js'
 
 
 
@@ -60,13 +61,13 @@ export default function LoginScreen() {
       setUserLoading(true)
   
       // 1) Chama sua API
-      const res = await api.post('/auth/login', {
+      const res = await api.post<User>('/auth/login', {
         email: form.email,
         password: form.password,
       })
   
       // 2) Extrai user + tokens
-      const user = res.data.user
+      const user = res.data
       const accessToken = await getAccessToken();
   
       // 3) Faz o signIn no contexto
@@ -82,6 +83,7 @@ export default function LoginScreen() {
         birthDate: localUser.birthDate,
         hasPasswordLogin: true,
         username: localUser.username,
+        createdAt: localUser.createdAt,
       })
   
       // 4) Redireciona

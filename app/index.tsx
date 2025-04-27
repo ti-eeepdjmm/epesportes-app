@@ -14,9 +14,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function StartApp() {
-  const [loading, setLoading] = useState(true);
   const { signOut } = useAuth();
-
   useEffect(() => {
     async function init() {
       try {
@@ -46,9 +44,6 @@ export default function StartApp() {
         // 2) Sem deep link: fluxo normal
         const token = await getAccessToken();
         const registered = await isUserRegistered();
-        clearTokens()
-        signOut();
-       
 
         if (!token) {
           // sem token: decide entre onboarding ou login
@@ -72,13 +67,9 @@ export default function StartApp() {
         await clearTokens();
         await signOut();
         router.replace('/(auth)/login');
-      } finally {
-        setLoading(false);
       }
     }
 
     init();
   }, [signOut]);
-
-  return loading ? <AppLoader visible /> : null;
 }

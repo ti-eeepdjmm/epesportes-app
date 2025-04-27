@@ -1,4 +1,3 @@
-// src/components/profile/EditProfileForm.tsx
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { useForm } from 'react-hook-form';
@@ -58,34 +57,49 @@ export default function EditProfileForm({
   const [selectedGameLabel, setSelectedGameLabel] = useState('');
   const [formLoading, setFormLoading] = useState(false);
 
-  const schema = z
-    .object({
-      username: z.string().optional(),
-      name: z.string().min(3, 'Nome deve ter pelo menos 3 letras'),
-      favoriteTeam: z.string().min(1, 'Informe um time válido'),
-      gameId: z.string().optional(),
-      position: z.string().optional(),
-      jerseyNumber: z.string().optional(),
-    })
-    .superRefine((data, ctx) => {
-      const isCollective = ['futsal', 'handebol', 'vôlei'].includes(selectedGameLabel);
-      if (isCollective) {
-        if (!data.position) {
-          ctx.addIssue({
-            path: ['position'],
-            code: z.ZodIssueCode.custom,
-            message: 'Escolha uma posição',
-          });
-        }
-        if (!data.jerseyNumber) {
-          ctx.addIssue({
-            path: ['jerseyNumber'],
-            code: z.ZodIssueCode.custom,
-            message: 'Informe o número da camisa',
-          });
-        }
+  // Validação de username: mínimo 3 caracteres; apenas letras, números e underscore
+const schema = z
+.object({
+  username: z
+    .string()
+    .min(3, 'Username deve ter ao menos 3 caracteres')
+    .regex(/^[a-z0-9_.]+$/, 'Username inválido. Use apenas letras minúsculas, números, underscore ou ponto')
+    .refine(async (username) => {
+      // Checar se o username já existe
+      try{
+        const res = await api.get<{ available: boolean }>(`/users/check-username/${username}`);
+        return res.data.available === true
+      }catch(err){
+        return false
       }
-    });
+    }, 'Usename não disponível'),
+  name: z.string().min(3, 'Nome deve ter pelo menos 3 letras'),
+  favoriteTeam: z.string().min(1, 'Informe um time válido'),
+  gameId: z.string().optional(),
+  position: z.string().optional(),
+  jerseyNumber: z.string().optional(),
+})
+.superRefine((data, ctx) => {
+  const isCollective = ['futsal', 'handebol', 'vôlei'].includes(
+    selectedGameLabel
+  );
+  if (isCollective) {
+    if (!data.position) {
+      ctx.addIssue({
+        path: ['position'],
+        code: z.ZodIssueCode.custom,
+        message: 'Escolha uma posição',
+      });
+    }
+    if (!data.jerseyNumber) {
+      ctx.addIssue({
+        path: ['jerseyNumber'],
+        code: z.ZodIssueCode.custom,
+        message: 'Informe o número da camisa',
+      });
+    }
+  }
+});
 
   const {
     control,
@@ -94,6 +108,7 @@ export default function EditProfileForm({
     setValue,
     reset,
     clearErrors,
+    setError,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
@@ -109,37 +124,44 @@ export default function EditProfileForm({
 
   const watchedGameId = watch('gameId');
 
+  // Função para salvar dados no backend após validação
   const handleSave = async (data: any) => {
-      const selectedTeam = teams.find(t => t.value === data.favoriteTeam);
+    const selectedTeam = teams.find(
+      t => t.value === data.favoriteTeam
+    );
 
-      if (!selectedTeam) {
-        console.error('Time favorito não encontrado.');
-        return;
-      }
+    if (!selectedTeam) return;
 
-      const updatedData = {
-        ...data,
-        favoriteTeam: {
-          id: Number(selectedTeam.value),
-          name: selectedTeam.label,
-        },
-      };
-      onSave(updatedData);
-  };
+    const updatedData = {
+      ...data,
+      favoriteTeam: {
+        id: Number(selectedTeam.value),
+        name: selectedTeam.label,
+      },
+    };
 
-  const handleClickSave = async () => {
-    setFormLoading(true); 
+    onSave(updatedData);
     setIsEditing(false);
-  
-    try {
-      await handleSubmit(handleSave)(); 
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setFormLoading(false);
-    }
   };
 
+  // Tratativa ao pressionar salvar: validação de schema + checagem de disponibilidade no backend
+  const onPressSave = handleSubmit(
+    async data => {
+      setFormLoading(true);
+      try {
+        await handleSave(data);
+      } catch (err) {
+        console.error('Erro ao verificar username', err);
+      } finally {
+        setFormLoading(false);
+      }
+    },
+    () => {
+      // mantém isEditing === true para que o usuário corrija
+    }
+  );
+
+  // Carrega dados iniciais de games, teams e player
   useEffect(() => {
     async function loadData() {
       try {
@@ -149,12 +171,18 @@ export default function EditProfileForm({
           api.get<Team[]>('/teams'),
         ]);
 
-        setGames(gamesRes.data.map((g: Game) => ({ label: g.name, value: String(g.id) })));
-        setTeams(teamsRes.data.map((t: Team) => ({ label: t.name, value: String(t.id) })));
+        setGames(
+          gamesRes.data.map(g => ({ label: g.name, value: String(g.id) }))
+        );
+        setTeams(
+          teamsRes.data.map(t => ({ label: t.name, value: String(t.id) }))
+        );
 
         if (user.isAthlete) {
-          const res = await api.get<Player>(`/players/user/${user.id}`);
-          setPlayerData(res.data);
+          const playerRes = await api.get<Player>(
+            `/players/user/${user.id}`
+          );
+          setPlayerData(playerRes.data);
         }
       } catch (err) {
         console.error('Erro ao carregar dados iniciais', err);
@@ -165,9 +193,10 @@ export default function EditProfileForm({
     loadData();
   }, [user]);
 
+  // Atualiza seleção de modalidade e limpa erros quando começar a editar
   useEffect(() => {
     const selectedGame = games.find(g => g.value === watchedGameId);
-    const label = selectedGame?.label?.toLowerCase() || '';
+    const label = selectedGame?.label.toLowerCase() || '';
     setSelectedGameLabel(label);
 
     if (isEditing) {
@@ -177,9 +206,9 @@ export default function EditProfileForm({
     }
   }, [watchedGameId]);
 
+  // Ao receber dados, reseta valores do form
   useEffect(() => {
     if (!formLoading && games.length && teams.length) {
-
       if (user.isAthlete && playerData) {
         reset({
           username: user.username || '',
@@ -200,8 +229,7 @@ export default function EditProfileForm({
         });
       }
     }
-  }, [formLoading, games, teams, playerData]);
-
+  }, [games, teams, playerData]);
 
   const isIndividual = individualGames.includes(selectedGameLabel);
   const positionOptions = positionsBySport[selectedGameLabel] || [];
@@ -213,7 +241,7 @@ export default function EditProfileForm({
         label="@username"
         placeholder="Escolha seu nome de usuário"
         control={control}
-        disabled={isEditing}
+        disabled={!isEditing}
       />
 
       <InputField
@@ -221,7 +249,7 @@ export default function EditProfileForm({
         label="Nome"
         placeholder="Nome do Usuário"
         control={control}
-        disabled={isEditing}
+        disabled={!isEditing}
       />
 
       <SelectField
@@ -234,7 +262,9 @@ export default function EditProfileForm({
 
       {user.isAthlete && (
         <View style={{ marginTop: 16 }}>
-          <StyledText style={styles(theme).sectionTitle}>Dados de Atleta</StyledText>
+          <StyledText style={styles(theme).sectionTitle}>
+            Dados de Atleta
+          </StyledText>
           <SelectField
             name="gameId"
             label="Modalidade"
@@ -257,7 +287,7 @@ export default function EditProfileForm({
                 placeholder="Ex: 10"
                 control={control}
                 keyboardType="numeric"
-                disabled={isEditing}
+                disabled={!isEditing}
               />
             </>
           )}
@@ -266,48 +296,61 @@ export default function EditProfileForm({
 
       {isEditing ? (
         <View style={styles(theme).buttonGroup}>
-         <Button title="Salvar" onPress={handleClickSave} disabled={formLoading} />
-          <Button title="Cancelar" onPress={() => {
-            setIsEditing(false);
-            if (playerData) {
-              reset({
-                username: user.username || '',
-                name: user.name,
-                favoriteTeam: user.favoriteTeam?.id.toString() || '',
-                position: playerData.position || '',
-                jerseyNumber: playerData.jerseyNumber?.toString() || '',
-                gameId: playerData.game?.id.toString() || '',
-              });
-            }
-          }} />
+          <Button
+            title="Salvar"
+            onPress={onPressSave}
+            disabled={formLoading}
+          />
+          <Button
+            title="Cancelar"
+            onPress={() => {
+              setIsEditing(false);
+              if (playerData) {
+                reset({
+                  username: user.username || '',
+                  name: user.name,
+                  favoriteTeam: user.favoriteTeam?.id.toString() || '',
+                  position: playerData.position || '',
+                  jerseyNumber: playerData.jerseyNumber?.toString() || '',
+                  gameId: playerData.game?.id.toString() || '',
+                });
+              }
+            }}
+          />
         </View>
       ) : (
         <StyledText
-          style={{ marginTop: 12, color: theme.greenLight, fontFamily: 'Poppins_600SemiBold', fontSize: 16 }}
+          style={{
+            marginTop: 12,
+            color: theme.greenLight,
+            fontFamily: 'Poppins_600SemiBold',
+            fontSize: 16,
+          }}
           onPress={() => setIsEditing(true)}
         >
           {"Editar Informações"}
         </StyledText>
       )}
+
       {formLoading && (
         <View style={styles(theme).overlay}>
           <ActivityIndicator size="large" color={theme.greenLight} />
         </View>
       )}
     </View>
-
   );
 }
 
-const styles = (theme: any) => StyleSheet.create({
-  form: { padding: 16 },
-  sectionTitle: { fontSize: 14, color: theme.gray, marginBottom: 4 },
-  buttonGroup: { gap: 8, marginTop: 16 },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-});
+const styles = (theme: any) =>
+  StyleSheet.create({
+    form: { padding: 16 },
+    sectionTitle: { fontSize: 14, color: theme.gray, marginBottom: 4 },
+    buttonGroup: { gap: 8, marginTop: 16 },
+    overlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(255, 255, 255, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 10,
+    },
+  });
