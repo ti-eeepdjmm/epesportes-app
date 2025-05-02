@@ -1,125 +1,121 @@
-// app/(auth)/reset-password.tsx
-import React, { useEffect, useState } from 'react'
+import React from 'react';
 import {
-  View,
   StyleSheet,
   Platform,
   KeyboardAvoidingView,
   Alert,
-} from 'react-native'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useLocalSearchParams, useRouter } from 'expo-router'
+} from 'react-native';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
-import { InputField } from '@/components/forms/InputField'
-import { Button } from '@/components/forms/Button'
-import { StyledText } from '@/components/StyledText'
-import { useTheme } from '@/hooks/useTheme'
-import api from '@/utils/api'
-import * as Linking from 'expo-linking'
-import { useAuth } from '@/contexts/AuthContext'
+import { InputField } from '@/components/forms/InputField';
+import { Button } from '@/components/forms/Button';
+import { StyledText } from '@/components/StyledText';
+import { useTheme } from '@/hooks/useTheme';
+import api from '@/utils/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { clearTokens } from '@/utils/storage';
+import { useCustomBack } from '@/hooks/useCustomBack';
+import { supabase } from '@/utils/supabase';
 
-// 1) Schemas Zod
+// Schemas Zod
 const emailSchema = z.object({
   email: z.string().nonempty('O e‑mail é obrigatório').email('E‑mail inválido')
-  .refine(async (email) => {
-    try {
-      const response = await api.get(`/users/email/${encodeURIComponent(email)}`); 
-      return response.data.exists === undefined;
-    } catch {
-      // se erro na API, não bloqueia, apenas não valida duplicado
-      return false;
-    }
-  }, 'E-mail não cadastrado'),
-})
+    .refine(async (email) => {
+      try {
+        const response = await api.get(`/users/email/${encodeURIComponent(email)}`);
+        return response.data.exists === undefined;
+      } catch {
+        return false;
+      }
+    }, 'E-mail não cadastrado'),
+});
 
-const passwordSchema = z
-  .object({
-    password: z.string().nonempty('Digite uma senha').min(6, 'Mínimo de 6 caracteres'),
-    confirmPassword: z.string().nonempty('Confirme a senha').min(6, 'Mínimo de 6 caracteres'),
-  })
-  .refine((d) => d.password === d.confirmPassword, {
-    message: 'As senhas não coincidem',
-    path: ['confirmPassword'],
-  })
+const passwordSchema = z.object({
+  password: z.string().nonempty('Digite uma senha').min(6, 'Mínimo de 6 caracteres'),
+  confirmPassword: z.string().nonempty('Confirme a senha').min(6, 'Mínimo de 6 caracteres'),
+}).refine((d) => d.password === d.confirmPassword, {
+  message: 'As senhas não coincidem',
+  path: ['confirmPassword'],
+});
 
-type EmailForm = z.infer<typeof emailSchema>
-type PasswordForm = z.infer<typeof passwordSchema>
+type EmailForm = z.infer<typeof emailSchema>;
+type PasswordForm = z.infer<typeof passwordSchema>;
 
 export default function ResetPasswordScreen() {
-  const theme = useTheme()
-  const router = useRouter()
-  const { token } = useLocalSearchParams<{ token?: string }>()
-  const { user, signIn } = useAuth()
+  const theme = useTheme();
+  const router = useRouter();
+  const { token } = useLocalSearchParams<{ token?: string }>();
+  const { user, signOut } = useAuth();
+  
+  const fallback = user ? '/(tabs)/profile' : '/(auth)/login';
+  useCustomBack(fallback);
 
-  // Forms separados: um para envio de e‑mail, outro para atualizar senha
   const {
     control: emailControl,
     handleSubmit: handleSendEmail,
-    formState: { errors: emailErrors, isSubmitting: isSendingEmail },
-  } = useForm<EmailForm>({ resolver: zodResolver(emailSchema), defaultValues: { email: '' } })
+    formState: { isSubmitting: isSendingEmail },
+  } = useForm<EmailForm>({ resolver: zodResolver(emailSchema), defaultValues: { email: '' } });
 
   const {
     control: pwdControl,
     handleSubmit: handleUpdatePwd,
-    formState: { errors: pwdErrors, isSubmitting: isUpdatingPwd },
-  } = useForm<PasswordForm>({ 
-    resolver: zodResolver(passwordSchema), 
-    defaultValues: {
-      confirmPassword: '',
-      password: '',
-    }})
-  
+    formState: { isSubmitting: isUpdatingPwd },
+  } = useForm<PasswordForm>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: { confirmPassword: '', password: '' },
+  });
 
-  // 2) Caso user já autenticado e sem token, pular direto para form de atualização
-  const showEmailForm = !token && !user
+  const showEmailForm = !token && !user;
 
-  // 3) Enviar e‑mail de recuperação (não autenticado)
+  // Detecta se é um OAuth User que ainda não tem email/password
+  const isOAuthUserWithoutPassword = !!user && !user.hasPasswordLogin;
+
   const onSendEmail = async (data: EmailForm) => {
     try {
-      const redirectTo = Linking.createURL('/callback')
-      await api.post('/auth/recover-password', {
-        email: data.email,
-        redirectTo,
-      })
-      // em vez de só um Alert simples, defina botão com callback:
-    Alert.alert(
-      'E‑mail enviado',
-      'Verifique sua caixa de entrada para continuar.',
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            // navega pra tela de sucesso
-            router.replace({ pathname: '/success', params: { type: 'recovery' } })
-          },
-        },
-      ],
-      { cancelable: false }
-    )
-      
+      await api.post('/auth/recover-password', { email: data.email });
+      Alert.alert(
+        'E‑mail enviado',
+        'Verifique sua caixa de entrada para continuar.',
+        [{ text: 'OK', onPress: () => router.replace({ pathname: '/success', params: { type: 'recovery' } }) }],
+        { cancelable: false }
+      );
     } catch (err: any) {
-      console.error(err)
-      Alert.alert('Erro', err.message || 'Não foi possível enviar o e‑mail.')
+      console.error(err);
+      Alert.alert('Erro', err.message || 'Não foi possível enviar o e‑mail.');
     }
-  }
+  };
 
-  // 4) Atualizar senha (token ou sessão autenticada)
   const onUpdatePassword = async (data: PasswordForm) => {
     try {
-      // o interceptor do `api` já adiciona os headers com os tokens
-      await api.post('/auth/update-password', { 
-        newPassword: data.password, 
-      })
-      Alert.alert('Sucesso', 'Senha atualizada')
-      router.replace('/(auth)/login')
+      if (isOAuthUserWithoutPassword) {
+        // Novo fluxo: criar senha (registrar email/password via backend)
+        await supabase.auth.updateUser({
+          password: data.password,
+        });
+        Alert.alert('Sucesso', 'Senha criada com sucesso!');
+      } else {
+        // Fluxo normal: alterar senha
+        await api.post('/auth/update-password', {
+          newPassword: data.password,
+        });
+        Alert.alert('Sucesso', 'Senha atualizada!');
+      }
+
+      await clearTokens();
+      await signOut();
+      router.replace('/(auth)/login');
+
     } catch (err) {
-      Alert.alert('Erro', 'Erro ao atualizar a senha.')
-      router.replace('/(auth)/login')
+      console.error(err);
+      Alert.alert('Erro', 'Erro ao atualizar/criar a senha.');
+      await clearTokens();
+      await signOut();
+      router.replace('/(auth)/login');
     }
-  
-  }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -132,7 +128,7 @@ export default function ResetPasswordScreen() {
             Recuperar senha
           </StyledText>
           <StyledText style={[styles.subtitle, { color: theme.black }]}>
-          Enviaremos um email de recuperação para sua conta.
+            Enviaremos um e-mail de recuperação para sua conta.
           </StyledText>
           <InputField
             name="email"
@@ -141,7 +137,7 @@ export default function ResetPasswordScreen() {
             keyboardType="email-address"
           />
           <Button
-            title="Envia e‑mail"
+            title="Enviar e‑mail"
             onPress={handleSendEmail(onSendEmail)}
             loading={isSendingEmail}
             style={styles.button}
@@ -150,10 +146,12 @@ export default function ResetPasswordScreen() {
       ) : (
         <>
           <StyledText style={[styles.title, { color: theme.greenLight }]}>
-            Redefinir senha
+            {isOAuthUserWithoutPassword ? 'Criar senha' : 'Redefinir senha'}
           </StyledText>
           <StyledText style={[styles.subtitle, { color: theme.black }]}>
-            Escolha sua nova senha
+            {isOAuthUserWithoutPassword
+              ? 'Defina sua primeira senha para acessar também via e-mail.'
+              : 'Escolha sua nova senha'}
           </StyledText>
           <InputField
             name="password"
@@ -163,12 +161,12 @@ export default function ResetPasswordScreen() {
           />
           <InputField
             name="confirmPassword"
-            label="Confirmar senha"
+            label="Confirmar nova senha"
             control={pwdControl}
             secure
           />
           <Button
-            title="Atualizar senha"
+            title={isOAuthUserWithoutPassword ? 'Criar senha' : 'Atualizar senha'}
             onPress={handleUpdatePwd(onUpdatePassword)}
             loading={isUpdatingPwd}
             style={styles.button}
@@ -176,7 +174,7 @@ export default function ResetPasswordScreen() {
         </>
       )}
     </KeyboardAvoidingView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -199,4 +197,4 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 16,
   },
-})
+});

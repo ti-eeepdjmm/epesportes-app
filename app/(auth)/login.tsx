@@ -23,6 +23,11 @@ import { supabase } from '@/utils/supabase'
 import * as WebBrowser from 'expo-web-browser'
 import { REDIRECT_URI } from '@/utils/deep'  // já gerado com makeRedirectUri
 import axios, { AxiosError } from 'axios'
+import { User as LocalUser } from '@/types'
+import { getAccessToken } from '@/utils/storage'
+import { User } from '@supabase/supabase-js'
+
+
 
 // Validação com Zod
 const loginSchema = z.object({
@@ -63,19 +68,23 @@ export default function LoginScreen() {
   
       // 2) Extrai user + tokens
       const user = res.data.user
-      const authH = res.headers['authorization']
-      const refreshH = res.headers['x-refresh-token']
-      if (!authH || !refreshH) {
-        throw new Error('Tokens não recebidos do servidor.')
-      }
-      const accessToken = authH.replace(/^Bearer\s+/, '')
+      const accessToken = await getAccessToken();
   
       // 3) Faz o signIn no contexto
-      await signIn(accessToken, {
-        id: user.id,
-        name: user.user_metadata.full_name,
-        email: user.email ?? '',
-        profilePhoto: user.user_metadata.avatar_url,
+      const { data: localUser } = await api.get<LocalUser>(`/users/email/${user.email}`);
+      
+      await signIn(accessToken!, {
+        id: localUser.id,
+        authUserId: user.id,
+        name: localUser.name,
+        email: localUser.email,
+        profilePhoto: localUser.profilePhoto,
+        favoriteTeam: localUser.favoriteTeam,
+        isAthlete: localUser.isAthlete,
+        birthDate: localUser.birthDate,
+        hasPasswordLogin: true,
+        username: localUser.username,
+        createdAt: localUser.createdAt,
       })
   
       // 4) Redireciona

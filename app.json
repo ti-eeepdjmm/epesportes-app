@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "epesportes",
-    "slug": "EPesportes",
+    "name": "EPesportes",
+    "slug": "epesportes",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -43,6 +43,12 @@
             "image": "./assets/icons/splash-icon-light.png",
             "backgroundColor": "#000000"
           }
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
         }
       ],
       "expo-font"

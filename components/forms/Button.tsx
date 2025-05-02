@@ -53,7 +53,7 @@ export function Button({ title, onPress, loading, style, icon }: ButtonProps) {
       activeOpacity={0.8}
     >
       {loading ? (
-        <ActivityIndicator color="white" />
+        <ActivityIndicator color={theme.white} />
       ) : (
         <>
           {!!icon && <View style={styles.iconWrapper}>{icon}</View>}

@@ -36,7 +36,7 @@ export function AppLoader({ visible }: AppLoaderProps) {
 
     return (
         <Modal transparent animationType="fade" visible={visible}>
-            <View style={styles.overlay}>
+            <View style={styles(theme).overlay}>
                 <Animated.View style={{ transform: [{ rotate: spin }] }}>
                     <Svg width={40} height={40} viewBox="0 0 32 32" fill="none">
                         <Path
@@ -49,10 +49,11 @@ export function AppLoader({ visible }: AppLoaderProps) {
     );
 }
 
-const styles = StyleSheet.create({
+const styles = (theme:any)=> StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.66)', // leve esmaecimento
+        backgroundColor: theme.white, // leve esmaecimento
+        opacity:0.9,
         justifyContent: 'center',
         alignItems: 'center',
     },

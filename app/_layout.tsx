@@ -1,4 +1,11 @@
-import { Slot, useRouter } from 'expo-router';
+// app/_layout.tsx
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { Slot, useRouter, useSegments } from 'expo-router';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import * as SplashScreen from 'expo-splash-screen';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+import { StatusBar } from 'expo-status-bar';
 import {
   useFonts,
   Poppins_400Regular,
@@ -6,88 +13,135 @@ import {
   Poppins_600SemiBold,
   Poppins_700Bold,
 } from '@expo-google-fonts/poppins';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useCallback } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { useColorScheme } from 'react-native';
-import { ThemeProvider } from '@/contexts/ThemeContext';
-import { SocketProvider } from '@/contexts/SocketContext';
+
+import { ThemeProvider, useThemeContext } from '@/contexts/ThemeContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { AppLoader } from '@/components/AppLoader';
-import * as WebBrowser from 'expo-web-browser'
-import * as Linking from 'expo-linking'
+import { SocketProvider } from '@/contexts/SocketContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 
-WebBrowser.maybeCompleteAuthSession()// for web browser auth session
+import api from '@/utils/api';
+import { getAccessToken, isUserRegistered, clearTokens } from '@/utils/storage';
 
-SplashScreen.preventAutoHideAsync();// Prevent the splash screen from auto-hiding before the app is ready
+// Completa magic-link web
+WebBrowser.maybeCompleteAuthSession();
+
+// Previna o splash de sumir até chamarmos hideAsync()
+SplashScreen.preventAutoHideAsync().catch(console.warn);
 
 export default function RootLayout() {
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppEntry />
+        </AuthProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
+  );
+}
+
+function AppEntry() {
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_500Medium,
     Poppins_600SemiBold,
     Poppins_700Bold,
   });
+  const [ready, setReady] = useState(false);
+  const router = useRouter();
+  const segments = useSegments();
+  const { signOut } = useAuth();
+  const hasBootstrapped = useRef(false);
 
-  const colorScheme = useColorScheme() ?? 'light';
+  useEffect(() => {
+    if (!fontsLoaded || hasBootstrapped.current) return;
+    hasBootstrapped.current = true;
 
-  const onReady = useCallback(async () => {
-    if (fontsLoaded) {
+    (async () => {
       try {
-        await SplashScreen.hideAsync();
-      } catch (error) {
-        console.warn('Erro ao esconder SplashScreen:', error);
+        const initialUrl = await Linking.getInitialURL();
+        if (initialUrl?.includes('callback')) {
+          router.replace({
+            pathname: '/callback',
+            params: { url: encodeURIComponent(initialUrl) },
+          });
+          return;
+        }
+
+        const token = await getAccessToken();
+        const registered = await isUserRegistered();
+
+        if (!token) {
+          router.replace(registered ? '/(auth)/login' : '/(onboarding)/start');
+        } else {
+          try {
+            await api.get('/auth/me');
+            if (segments[0] !== '(tabs)') {
+              router.replace('/(tabs)');
+            }
+          } catch {
+            await clearTokens();
+            await signOut();
+            router.replace('/(auth)/login');
+          }
+        }
+      } catch (err) {
+        console.error('Bootstrap error:', err);
+        await clearTokens();
+        await signOut();
+        router.replace('/(auth)/login');
+      } finally {
+        setReady(true);
       }
-    }
-  }, [fontsLoaded]);
+    })();
+  }, [fontsLoaded, segments]);
 
-  useEffect(() => {
-    onReady();
-  }, [onReady]);
+  if (!ready || !fontsLoaded) return null;
 
-  if (!fontsLoaded) {
-    return <AppLoader visible />;
-  }
-
-  return (
-    <ThemeProvider>
-      <AuthProvider>
-        <RenderApp colorScheme={colorScheme} />
-      </AuthProvider>
-    </ThemeProvider>
-  );
+  return <RenderApp />;
 }
 
-function RenderApp({ colorScheme }: { colorScheme: 'light' | 'dark' }) {
+function RenderApp() {
   const { user } = useAuth();
-  useDeepLinkRedirect();
-  return (
-    <SocketProvider userId={user?.id ?? ''}>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <Slot />
-    </SocketProvider>
-  );
-}
+  const theme = useThemeContext().theme === 'dark' ? '#000' : '#FFF';
+  const router = useRouter();
+  const url = Linking.useURL();
 
-// Função para tratar deep links
-// 1) Cold start: intercepta apenas 'callback' (já tratado no StartApp)
-function useDeepLinkRedirect() {
-  const router = useRouter()
-  const url = Linking.useURL() // warm‑start
+  // Reset magic-link em runtime
   useEffect(() => {
-     (async () => {
-      const initialUrl = await Linking.getInitialURL()  // cold‑start
-      const incoming = url ?? initialUrl
-      if (!incoming) return
-
-      // se for callback, manda tudo pra /callback
-      if (incoming.startsWith('epesportes://callback')) {
-        // opcional: encodeURIComponent pra garantir
+    (async () => {
+      const incoming = url ?? (await Linking.getInitialURL());
+      if (!incoming) return;
+      const cb = Linking.createURL('callback');
+      if (incoming.startsWith(cb)) {
         router.replace({
           pathname: '/callback',
           params: { url: encodeURIComponent(incoming) },
-        })
+        });
       }
-    })()
-  }, [url])
+    })();
+  }, [url, router]);
+
+  // Esconde o splash só após a primeira pintura do React
+  const hasHidden = useRef(false);
+  const onLayoutRootView = useCallback(async () => {
+    if (!hasHidden.current) {
+      hasHidden.current = true;
+      await SplashScreen.hideAsync();
+    }
+  }, []);
+
+  return (
+    <SocketProvider userId={user?.authUserId ?? ''}>
+      <NotificationProvider>
+        <SafeAreaView
+          style={{ flex: 1, backgroundColor: theme }}
+          onLayout={onLayoutRootView}
+        >
+          <StatusBar style={theme === '#000' ? 'light' : 'dark'} />
+          <Slot />
+        </SafeAreaView>
+      </NotificationProvider>
+    </SocketProvider>
+  );
 }

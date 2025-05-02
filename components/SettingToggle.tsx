@@ -50,8 +50,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 16,
     fontFamily: 'Poppins_400Regular',
   },
   description: {

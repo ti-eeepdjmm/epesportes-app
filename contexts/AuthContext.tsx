@@ -1,13 +1,10 @@
 // src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import { User } from '@/types'
+import { AppLoader } from '@/components/AppLoader';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  profilePhoto?: string;
-}
+
 
 interface AuthContextData {
   user: User | null;
@@ -27,6 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
 
   const isAuthenticated = !!user && !!token;
 
@@ -62,12 +60,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await SecureStore.deleteItemAsync('user');
   };
 
-  const updateUser = (newUser: User) => {
+  const updateUser = async (newUser: User) => {
     setUser(newUser);
-    SecureStore.setItemAsync('user', JSON.stringify(newUser));
+    await SecureStore.setItemAsync('user', JSON.stringify(newUser));
   };
 
-  if (isLoading) return null;
+  if (isLoading) return <AppLoader visible />;
 
   return (
     <AuthContext.Provider value={{ user, token, isAuthenticated, isLoading, signIn, signOut, updateUser }}>
