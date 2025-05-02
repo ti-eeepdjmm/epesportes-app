@@ -1,6 +1,6 @@
 // app/_layout.tsx
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Slot, useRouter } from 'expo-router';
+import { Slot, useRouter, useSegments } from 'expo-router';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import * as WebBrowser from 'expo-web-browser';
@@ -49,54 +49,54 @@ function AppEntry() {
   });
   const [ready, setReady] = useState(false);
   const router = useRouter();
+  const segments = useSegments();
   const { signOut } = useAuth();
-
-  const bootstrap = useCallback(async () => {
-    try {
-      if (!fontsLoaded) return;
-
-      const initialUrl = await Linking.getInitialURL();
-      if (initialUrl?.includes('callback')) {
-        router.replace({
-          pathname: '/callback',
-          params: { url: encodeURIComponent(initialUrl) },
-        });
-        return;
-      }
-
-      const token = await getAccessToken();
-      const registered = await isUserRegistered();
-      if (!token) {
-        router.replace(registered ? '/(auth)/login' : '/(onboarding)/start');
-      } else {
-        try {
-          await api.get('/auth/me');
-          router.replace('/(tabs)');
-        } catch {
-          await clearTokens();
-          await signOut();
-          router.replace('/(auth)/login');
-        }
-      }
-    } catch (err) {
-      console.error('Bootstrap error:', err);
-      await clearTokens();
-      await signOut();
-      router.replace('/(auth)/login');
-    } finally {
-      setReady(true);
-      // não escondemos o splash aqui; faremos no onLayout
-    }
-  }, [fontsLoaded, router, signOut]);
+  const hasBootstrapped = useRef(false);
 
   useEffect(() => {
-    bootstrap();
-  }, [bootstrap]);
+    if (!fontsLoaded || hasBootstrapped.current) return;
+    hasBootstrapped.current = true;
 
-  // Enquanto não estivermos prontos, mantemos o splash visível
-  if (!ready || !fontsLoaded) {
-    return null;
-  }
+    (async () => {
+      try {
+        const initialUrl = await Linking.getInitialURL();
+        if (initialUrl?.includes('callback')) {
+          router.replace({
+            pathname: '/callback',
+            params: { url: encodeURIComponent(initialUrl) },
+          });
+          return;
+        }
+
+        const token = await getAccessToken();
+        const registered = await isUserRegistered();
+
+        if (!token) {
+          router.replace(registered ? '/(auth)/login' : '/(onboarding)/start');
+        } else {
+          try {
+            await api.get('/auth/me');
+            if (segments[0] !== '(tabs)') {
+              router.replace('/(tabs)');
+            }
+          } catch {
+            await clearTokens();
+            await signOut();
+            router.replace('/(auth)/login');
+          }
+        }
+      } catch (err) {
+        console.error('Bootstrap error:', err);
+        await clearTokens();
+        await signOut();
+        router.replace('/(auth)/login');
+      } finally {
+        setReady(true);
+      }
+    })();
+  }, [fontsLoaded, segments]);
+
+  if (!ready || !fontsLoaded) return null;
 
   return <RenderApp />;
 }

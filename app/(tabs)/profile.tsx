@@ -18,11 +18,12 @@ import MoonIcon from '@/components/icons/MoonIcon';
 import ProfileInfoCard from '@/components/profile/ProfileInfoCard';
 import EditProfileForm from '@/components/profile/EditProfileForm';
 import api from '@/utils/api';
-import { clearTokens } from '@/utils/storage';
+import { clearTokens, getAccessToken } from '@/utils/storage';
 import { Player, UserPreferences, UserProfile } from '@/types';
 
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/utils/supabase';
+import * as FileSystem from 'expo-file-system';
 
 export default function ProfileScreen() {
   const theme = useTheme();
@@ -83,7 +84,6 @@ export default function ProfileScreen() {
   // Novo método para editar foto de perfil
   const handleEditPhoto = async () => {
     try {
-      // Pede permissão para a galeria
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
@@ -93,10 +93,10 @@ export default function ProfileScreen() {
         return;
       }
 
-      // Abre o seletor de imagem
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
+        aspect: [1, 1],
         quality: 1,
       });
 
@@ -105,54 +105,48 @@ export default function ProfileScreen() {
       setUploadingPhotoLoading(true);
 
       const asset = result.assets[0];
-      const uri = asset.uri;
+      const fileUri = asset.uri;
+      const fileExt = fileUri.split('.').pop() || 'jpg';
 
-      // Constrói nome de arquivo único para evitar stale content
-      const fileExt = uri.split('.').pop();
       const timestamp = Date.now();
       const filePath = `${user?.id}/${timestamp}.${fileExt}`;
+      const contentType = `image/${fileExt}`;
 
-      // Faz upload para Supabase Storage com contentType
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      const token = await getAccessToken();
 
-      const { data: uploadData, error: uploadError } = await supabase
-        .storage
-        .from('avatars')
-        .upload(filePath, blob, { upsert: false });
+      await FileSystem.uploadAsync(
+        `https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/avatars/${filePath}?upsert=true`,
+        fileUri,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': `${contentType}`,
+          },
+          httpMethod: 'POST',
+          uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+        }
+      );
 
-
-      if (uploadError) {
-        console.error('🛑 uploadError:', uploadError);
-        Alert.alert('Erro no upload', uploadError.message);
-        return;
-      }
-
-      // Obtém URL pública
-      // Obtém URL pública
       const { data: urlData } = supabase
         .storage
         .from('avatars')
-        .getPublicUrl(uploadData.path);
+        .getPublicUrl(`${filePath}`);
+
       const publicUrl = urlData.publicUrl;
 
-
-
-      // Atualiza registro do usuário
       const { data: updatedUser } = await api.patch(`/users/${user?.id}`, {
         profilePhoto: publicUrl,
       });
+
       updateUser(updatedUser);
     } catch (err) {
-      console.error('🛑 uploadError:', err);
-      Alert.alert(
-        'Erro',
-        'Não foi possível atualizar a foto de perfil.'
-      );
+      console.error('🛑 Erro inesperado:', err);
+      Alert.alert('Erro', 'Não foi possível atualizar a foto de perfil.');
     } finally {
       setUploadingPhotoLoading(false);
     }
   };
+
 
   const handleSaveProfile = async (profile: UserProfile) => {
     try {
