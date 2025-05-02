@@ -22,10 +22,7 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 import api from '@/utils/api';
 import { getAccessToken, isUserRegistered, clearTokens } from '@/utils/storage';
 
-// Completa magic-link web
 WebBrowser.maybeCompleteAuthSession();
-
-// Previna o splash de sumir até chamarmos hideAsync()
 SplashScreen.preventAutoHideAsync().catch(console.warn);
 
 export default function RootLayout() {
@@ -47,67 +44,63 @@ function AppEntry() {
     Poppins_600SemiBold,
     Poppins_700Bold,
   });
-  const [ready, setReady] = useState(false);
+  const [bootstrapped, setBootstrapped] = useState(false);
+  const hasBootstrapped = useRef(false);
   const router = useRouter();
   const segments = useSegments();
   const { signOut } = useAuth();
-  const hasBootstrapped = useRef(false);
 
-  useEffect(() => {
-    if (!fontsLoaded || hasBootstrapped.current) return;
+  const onLayoutRootView = useCallback(async () => {
+    if (hasBootstrapped.current || !fontsLoaded) return;
     hasBootstrapped.current = true;
 
-    (async () => {
-      try {
-        const initialUrl = await Linking.getInitialURL();
-        if (initialUrl?.includes('callback')) {
-          router.replace({
-            pathname: '/callback',
-            params: { url: encodeURIComponent(initialUrl) },
-          });
-          return;
-        }
-
-        const token = await getAccessToken();
-        const registered = await isUserRegistered();
-
-        if (!token) {
-          router.replace(registered ? '/(auth)/login' : '/(onboarding)/start');
-        } else {
-          try {
-            await api.get('/auth/me');
-            if (segments[0] !== '(tabs)') {
-              router.replace('/(tabs)');
-            }
-          } catch {
-            await clearTokens();
-            await signOut();
-            router.replace('/(auth)/login');
-          }
-        }
-      } catch (err) {
-        console.error('Bootstrap error:', err);
-        await clearTokens();
-        await signOut();
-        router.replace('/(auth)/login');
-      } finally {
-        setReady(true);
+    try {
+      const initialUrl = await Linking.getInitialURL();
+      if (initialUrl?.includes('callback')) {
+        router.replace({
+          pathname: '/callback',
+          params: { url: encodeURIComponent(initialUrl) },
+        });
+        return;
       }
-    })();
+
+      const token = await getAccessToken();
+      const registered = await isUserRegistered();
+
+      if (!token) {
+        router.replace(registered ? '/(auth)/login' : '/(onboarding)/start');
+      } else {
+        try {
+          await api.get('/auth/me');
+          if (segments[0] !== '(tabs)') {
+            router.replace('/(tabs)');
+          }
+        } catch {
+          await clearTokens();
+          await signOut();
+          router.replace('/(auth)/login');
+        }
+      }
+    } catch (err) {
+      console.error('Bootstrap error:', err);
+      await clearTokens();
+      await signOut();
+      router.replace('/(auth)/login');
+    } finally {
+      setBootstrapped(true);
+      await SplashScreen.hideAsync();
+    }
   }, [fontsLoaded, segments]);
 
-  if (!ready || !fontsLoaded) return null;
-
-  return <RenderApp />;
+  return <RenderApp onLayout={onLayoutRootView} />;
 }
 
-function RenderApp() {
+function RenderApp({ onLayout }: { onLayout: () => void }) {
   const { user } = useAuth();
   const theme = useThemeContext().theme === 'dark' ? '#000' : '#FFF';
   const router = useRouter();
   const url = Linking.useURL();
 
-  // Reset magic-link em runtime
   useEffect(() => {
     (async () => {
       const incoming = url ?? (await Linking.getInitialURL());
@@ -122,21 +115,12 @@ function RenderApp() {
     })();
   }, [url, router]);
 
-  // Esconde o splash só após a primeira pintura do React
-  const hasHidden = useRef(false);
-  const onLayoutRootView = useCallback(async () => {
-    if (!hasHidden.current) {
-      hasHidden.current = true;
-      await SplashScreen.hideAsync();
-    }
-  }, []);
-
   return (
     <SocketProvider userId={user?.authUserId ?? ''}>
       <NotificationProvider>
         <SafeAreaView
           style={{ flex: 1, backgroundColor: theme }}
-          onLayout={onLayoutRootView}
+          onLayout={onLayout}
         >
           <StatusBar style={theme === '#000' ? 'light' : 'dark'} />
           <Slot />
