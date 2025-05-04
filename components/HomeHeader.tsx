@@ -18,6 +18,7 @@ export function HomeHeader() {
   useEffect(() => {
      setNotifications(state.items.filter(n => !n.read).length);
   },[state]);
+
   return (
     <View style={styles(theme).container}>
       <Image
@@ -39,7 +40,7 @@ export function HomeHeader() {
           // Marca todas como lidas
           dispatch({ type: 'MARK_ALL_READ' });
           // Navega para a tela de notificações
-          // router.push('/notifications');
+          router.push('/notifications');
         }}
       >
         <BellIcon size={32} color={theme.greenLight} />
