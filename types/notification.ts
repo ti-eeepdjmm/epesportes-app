@@ -16,6 +16,7 @@ export const globalNotificationTypes = [
   'broadcast',
   'poll',
   'post',
+  'goal',
 ] as const;
 export type GlobalNotificationType = typeof globalNotificationTypes[number];
 

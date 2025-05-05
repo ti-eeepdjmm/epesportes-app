@@ -2,9 +2,9 @@
 
 import React, { FC } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { Notification } from '@/types/notification';
+import { Notification, NotificationType } from '@/types/notification';
 import { relativeTime } from '@/utils/date';
-import { isPersonal, globalConfig } from '@/utils/notifications';
+import { isPersonal, globalConfig, getNotificationLabel } from '@/utils/notifications';
 import { useTheme } from '@/hooks/useTheme';
 
 interface Props {
@@ -20,15 +20,6 @@ interface PersonalPayload {
   timestamp: number;
 }
 
-// Payload typings for global poll
-interface PollPayload {
-  type: 'poll';
-  title: string;
-  message: string;
-  link: string;
-  timestamp: number;
-  pollId?: number;
-}
 
 export const NotificationItem: FC<Props> = ({ notification, onPress }) => {
   const theme = useTheme();
@@ -58,19 +49,22 @@ export const NotificationItem: FC<Props> = ({ notification, onPress }) => {
   if (cfg) {
     const { Icon, renderMessage } = cfg;
     const isPoll = notification.type === 'poll';
-    const pollPayload = payload as PollPayload;
+    const pollLabel = isPoll && notification.message === 'Enquete Finalizada!' ? 'Enquete Finalizada!' : 'Nova Enquete:';
     return (
       <TouchableOpacity style={styles.container} onPress={onPress}>
         <View style={[styles.iconWrapper, { borderColor: theme.grayLight }]}>
           <Icon size={24} color={theme.greenLight} />
         </View>
         <View style={styles.content}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
+          {payload && (
+            <Text style={[styles.pollTitle, { color: theme.black }]}>{isPoll? pollLabel : getNotificationLabel(payload?.type)} </Text>
+          )}
 
           <Text style={[styles.message, { color: theme.black }]}>
-            {isPoll && (
-              <Text style={[styles.pollTitle, { color: theme.black }]}>Enquete: </Text>
-            )}{renderMessage(payload)}
+            {renderMessage(payload)}
           </Text>
+          </View>
           <Text style={[styles.time, { color: theme.gray }]}>
             {relativeTime(notification.date)}
           </Text>
