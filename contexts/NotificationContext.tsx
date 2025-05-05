@@ -1,27 +1,38 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+// contexts/NotificationContext.tsx
+
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  ReactNode
+} from 'react';
 import { useSocket } from './SocketContext';
 import api from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { Notification, NotificationType } from '@/types';
-
+import { Notification, NotificationType, User } from '@/types';
 
 // Estado interno
-interface State {
-  items: Notification[];
-}
+type State = { items: Notification[] };
 
 // Ações possíveis
 type Action =
+  | { type: 'LOAD'; notifications: Notification[] }
   | { type: 'RECEIVE'; notification: Notification }
   | { type: 'MARK_ALL_READ' }
   | { type: 'RESET' };
 
 const initialState: State = { items: [] };
 
-// Reducer para manter o histórico de notificações
+// Reducer para notificações
 function reducer(state: State, action: Action): State {
   switch (action.type) {
+    case 'LOAD':
+      return { items: action.notifications };
     case 'RECEIVE':
+      if (state.items.some(n => n.id === action.notification.id)) {
+        return state;
+      }
       return { items: [action.notification, ...state.items] };
     case 'MARK_ALL_READ':
       return { items: state.items.map(n => ({ ...n, read: true })) };
@@ -32,7 +43,7 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-// Contexto e hook de acesso
+// Contexto
 const NotificationContext = createContext<{
   state: State;
   dispatch: React.Dispatch<Action>;
@@ -40,67 +51,110 @@ const NotificationContext = createContext<{
 
 export const useNotifications = () => useContext(NotificationContext);
 
-// Provider que encapsula a lógica de socket + fetch inicial + reset
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { socket } = useSocket();
   const { user } = useAuth();
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  // 1) Reset quando dé-loga
+  // FETCH inicial: apenas quando user estiver disponível
   useEffect(() => {
-    if (!user) dispatch({ type: 'RESET' });
-  }, [user]);
+    if (!user) {
+      dispatch({ type: 'RESET' });
+      return;
+    }
 
-  // 2) Fetch inicial de notificações do backend
-  useEffect(() => {
-    if (!user) return;
+    let isMounted = true;
     (async () => {
       try {
-        const res = await api.get<Notification[]>('/notifications');
-        res.data.forEach(n =>
-          dispatch({ type: 'RECEIVE', notification: {
-            id: n.id ?? n.date,
-            type: n.type,
-            payload: n,
-            read: n.read,
-            date: n.date,
-            message: n.message,
-          } })
+        const { data: rawNotifs } = await api.get<Notification[]>('/notifications');
+
+        // Enriquecer payloads pessoais
+        const personalIds = rawNotifs
+          .filter(n => !n.isGlobal && n.senderId)
+          .map(n => n.senderId!) as number[];
+        const uniqueIds = Array.from(new Set(personalIds));
+
+        const users = await Promise.all(
+          uniqueIds.map(id => api.get<User>(`/users/${id}`))
         );
-      } catch (err) {
-        console.error('Erro ao carregar notificações', err);
+        const usersMap: Record<number, User> = {};
+        users.forEach(({ data }) => { usersMap[data.id] = data; });
+
+        const enriched = rawNotifs.map(n => {
+          const base = {
+            id: n.id,
+            type: n.type,
+            message: n.message,
+            link: n.link,
+            date: n.date,
+            read: n.read,
+            isGlobal: n.isGlobal,
+          };
+          if (!n.isGlobal && n.senderId) {
+            const u = usersMap[n.senderId];
+            return {
+              ...base,
+              payload: {
+                sender: { id: u.id, name: u.name, avatar: u.profilePhoto },
+                message: n.message,
+                link: n.link!,
+                timestamp: +new Date(n.date),
+              }
+            } as Notification;
+          }
+          return {
+            ...base,
+            payload: {
+              type: n.type,
+              title: n.message,
+              message: n.message,
+              link: n.link!,
+              timestamp: +new Date(n.date),
+            }
+          } as Notification;
+        });
+
+        if (isMounted) dispatch({ type: 'LOAD', notifications: enriched });
+      } catch (err: any) {
+        console.error('fetchNotifications error:', err);
+        // Se 401, apenas resetar estado de notificações
+        if (err.response?.status === 401) {
+          dispatch({ type: 'RESET' });
+        }
       }
     })();
+
+    return () => { isMounted = false; };
   }, [user]);
 
-  // 3) Escuta eventos de socket para novas notificações
+  // WebSocket para novas notificações
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !user) return;
 
     const handler = (type: NotificationType) => (payload: any) => {
-      dispatch({
-        type: 'RECEIVE',
-        notification: {
-          id: Date.now().toString(),
-          type,
-          payload,
-          read: false,
-          date: new Date().toISOString(),
-          message: payload.message,
-        },
-      });
+      const notif: Notification = {
+        id: payload.id ?? Date.now().toString(),
+        type,
+        message: payload.message,
+        link: payload.link,
+        date: new Date().toISOString(),
+        read: false,
+        isGlobal: payload.isGlobal ?? false,
+        payload,
+      };
+      dispatch({ type: 'RECEIVE', notification: notif });
     };
 
-    socket.on('feed:new-post', handler('feed:new-post'));
-    socket.on('match:update', handler('match:update'));
-    socket.on('poll:update', handler('poll:update'));
+    socket.on('feed:new-post', handler('post'));
+    socket.on('match:update',   handler('match'));
+    socket.on('poll:update',    handler('poll'));
 
     return () => {
       socket.off('feed:new-post');
       socket.off('match:update');
       socket.off('poll:update');
     };
-  }, [socket]);
+  }, [socket, user]);
 
   return (
     <NotificationContext.Provider value={{ state, dispatch }}>
