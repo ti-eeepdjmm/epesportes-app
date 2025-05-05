@@ -1,81 +1,140 @@
 // app/notifications.tsx
 
 import React from 'react';
-import { SectionList, View, Text, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  SectionList,
+  StyleSheet,
+  TouchableOpacity
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { NotificationItem } from '../components/notifications/NotificationItem';
 import { useNotifications } from '../contexts/NotificationContext';
-import { router } from 'expo-router';
 import { Notification } from '../types/notification';
-
-// Tipos pessoais do backend
-const personalTypes = ['reaction', 'comment', 'mention', 'follow'] as const;
+import { useTheme } from '@/hooks/useTheme';
 
 export default function NotificationsModal() {
+  const router = useRouter();
   const { state, dispatch } = useNotifications();
+  const theme = useTheme()
 
-  // Separar notificações pessoais e globais
-  const personal = state.items.filter(
-    n => personalTypes.includes((n.payload as any)?.type)
+  // Ordena por data decrescente
+  const items = state.items.slice().sort((a, b) =>
+    new Date(b.date).getTime() - new Date(a.date).getTime()
   );
-  const globals = state.items.filter(
-    n => !personalTypes.includes((n.payload as any)?.type)
-  );
+  const now = new Date();
 
-  const sections = [
-    { title: 'Pessoais', data: personal },
-    { title: 'Globais',  data: globals  },
-  ];
+  // Agrupa por tempo
+  const groups: Record<string, Notification[]> = {
+    'Mais recentes': [],
+    Ontem: [],
+    'Últimos 30 dias': [],
+  };
 
-  const handlePress = () => {
-    dispatch({ type: 'MARK_ALL_READ' });
+  items.forEach(item => {
+    const diffMs = now.getTime() - new Date(item.date).getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) groups['Mais recentes'].push(item);
+    else if (diffDays === 1) groups['Ontem'].push(item);
+    else if (diffDays <= 30) groups['Últimos 30 dias'].push(item);
+    else groups['Últimos 30 dias'].push(item);
+  });
+
+  const sections = Object.entries(groups)
+    .map(([title, data]) => ({ title, data }))
+    .filter(section => section.data.length > 0);
+
+  const handleBack = () => {
     router.back();
   };
 
+  const handleMarkAllRead = () => {
+    dispatch({ type: 'MARK_ALL_READ' });
+  };
+
   return (
-    <SectionList<Notification>
-      sections={sections}
-      keyExtractor={(item, idx) => item.id ?? `notif-${idx}`}
-      renderSectionHeader={({ section: { title } }) => (
-        <View style={styles.header}>
-          <Text style={styles.headerText}>{title}</Text>
-        </View>
-      )}
-      renderItem={({ item }) => (
-        <NotificationItem notification={item} onPress={handlePress} />
-      )}
-      ItemSeparatorComponent={() => <View style={styles.separator} />}
-      ListEmptyComponent={() => (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Você não tem notificações</Text>
-        </View>
-      )}
-      stickySectionHeadersEnabled={false}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={[
-        styles.list,
-        { flexGrow: 1, justifyContent: state.items.length === 0 ? 'center' : 'flex-start' }
-      ]}
-    />
+    <View style={styles(theme).container}>
+      <View style={styles(theme).topBar}>
+        <TouchableOpacity onPress={handleBack} style={styles(theme).backButton}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles(theme).title}>Notificações</Text>
+        <TouchableOpacity onPress={handleMarkAllRead} style={styles(theme).markAllButton}>
+          <Text style={styles(theme).markAllText}>Marcar todas</Text>
+        </TouchableOpacity>
+      </View>
+
+      <SectionList<Notification>
+        sections={sections}
+        keyExtractor={(item, idx) => item.id || `notif-${idx}`}
+        renderSectionHeader={({ section: { title } }) => (
+          <View style={styles(theme).sectionHeader}>
+            <Text style={styles(theme).sectionHeaderText}>{title}</Text>
+          </View>
+        )}
+        renderItem={({ item }) => (
+          <NotificationItem notification={item} onPress={() => {}} />
+        )}
+        ItemSeparatorComponent={() => <View style={styles(theme).separator} />}
+        ListEmptyComponent={() => (
+          <View style={styles(theme).emptyContainer}>
+            <Text style={styles(theme).emptyText}>Você não tem notificações</Text>
+          </View>
+        )}
+        stickySectionHeadersEnabled
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles(theme).list}
+      />
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = (theme:any) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.white,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.grayLight,
+  },
+  backButton: {
+    marginRight: 12,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    flex: 1,
+    color: theme.black,
+  },
+  markAllButton: {
+    padding: 8,
+  },
+  markAllText: {
+    fontSize: 14,
+    color: theme.greenLight,
+  },
   list: {
     paddingBottom: 24,
-    backgroundColor: '#fff',
   },
-  header: {
+  sectionHeader: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#f0f0f0',
   },
-  headerText: {
+  sectionHeaderText: {
     fontSize: 16,
     fontWeight: 'bold',
   },
   separator: {
     height: 1,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: theme.grayLight,
     marginLeft: 72,
   },
   emptyContainer: {
@@ -86,6 +145,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: '#888',
+    color: theme.black,
   },
 });

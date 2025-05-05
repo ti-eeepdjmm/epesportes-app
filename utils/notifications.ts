@@ -1,13 +1,11 @@
 // utils/notifications.ts
+import { FC } from 'react';
 
-import { ImageSourcePropType } from 'react-native';
-import {
-  NotificationType,
-  PersonalNotificationType,
-  GlobalNotificationType,
-} from '../types/notification';
+import CalendarIcon from '@/components/icons/CalendarIcon';
+import BallIcon from '@/components/icons/BallIcon';
+import MessagesIcon from '@/components/icons/MessagesIcon';
 
-// 1) Quais tipos são pessoais, conforme seu backend
+// 1) Quais tipos são pessoais
 export const personalNotificationTypes = [
   'reaction',
   'comment',
@@ -15,41 +13,60 @@ export const personalNotificationTypes = [
   'follow',
 ] as const;
 
-// 2) Type guard para notificações pessoais
-export function isPersonal(
-  type: NotificationType
-): type is PersonalNotificationType {
+export type PersonalNotificationType = typeof personalNotificationTypes[number];
+
+// 2) Quais tipos são globais
+export const globalNotificationTypes = [
+  'match',
+  'event',
+  'broadcast',
+  'poll',
+  'post',
+  'goal',
+] as const;
+export type GlobalNotificationType = typeof globalNotificationTypes[number];
+
+// 3) Union de NotificationType
+export type NotificationType = PersonalNotificationType | GlobalNotificationType;
+
+// 4) Guard para pessoais
+export function isPersonal(type: NotificationType): type is PersonalNotificationType {
   return (personalNotificationTypes as readonly string[]).includes(type);
 }
 
-// 3) Configuração para notificações globais, conforme GlobalNotificationType
+// 5) Configuração de ícones e mensagens para notificações globais
 export const globalConfig: Record<
   GlobalNotificationType,
   {
-    icon: ImageSourcePropType;
+    Icon: FC<{ size?: number; color?: string }>;
     renderMessage: (payload: any) => string;
   }
 > = {
   match: {
-    icon: require('../assets/icons/calendar.png'),
-    renderMessage: (p) =>
-      `Partida: ${p.teams.team1.name} ${p.teams.team1.score ?? 0} x ${p.teams.team2.score ??
-        0} ${p.teams.team2.name}`,
+    Icon: CalendarIcon,
+    renderMessage: p =>
+      p.teams && p.teams.team1 && p.teams.team2
+        ? `Partida: ${p.teams.team1.name} ${p.teams.team1.score ?? 0} x ${p.teams.team2.score ?? 0} ${p.teams.team2.name}`
+        : `Partida: ${p.message}` || 'Atualização de partida',
   },
   event: {
-    icon: require('../assets/icons/calendar.png'),
-    renderMessage: (p) => p.title,
+    Icon: CalendarIcon,
+    renderMessage: p => p.title,
   },
   broadcast: {
-    icon: require('../assets/icons/calendar.png'),
-    renderMessage: (p) => p.message,
+    Icon: MessagesIcon,
+    renderMessage: p => p.message,
   },
   poll: {
-    icon: require('../assets/icons/poll.png'),
-    renderMessage: (p) => `Enquete: ${p.title}`,
+    Icon: MessagesIcon,
+    renderMessage: p => p.title || p.message,
   },
   post: {
-    icon: require('../assets/icons/poll.png'),
-    renderMessage: (p) => p.title,
+    Icon: MessagesIcon,
+    renderMessage: p => p.title,
+  },
+  goal: {
+    Icon: BallIcon,
+    renderMessage: p => `GOOL! ${p.message}`,
   },
 };

@@ -30,9 +30,7 @@ function reducer(state: State, action: Action): State {
     case 'LOAD':
       return { items: action.notifications };
     case 'RECEIVE':
-      if (state.items.some(n => n.id === action.notification.id)) {
-        return state;
-      }
+      if (state.items.some(n => n.id === action.notification.id)) return state;
       return { items: [action.notification, ...state.items] };
     case 'MARK_ALL_READ':
       return { items: state.items.map(n => ({ ...n, read: true })) };
@@ -44,11 +42,11 @@ function reducer(state: State, action: Action): State {
 }
 
 // Contexto
-const NotificationContext = createContext<{
+type ContextValue = {
   state: State;
   dispatch: React.Dispatch<Action>;
-}>({ state: initialState, dispatch: () => {} });
-
+};
+const NotificationContext = createContext<ContextValue>({ state: initialState, dispatch: () => {} });
 export const useNotifications = () => useContext(NotificationContext);
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -66,20 +64,32 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     let isMounted = true;
     (async () => {
       try {
+        // 1) Buscar notificações brutas
         const { data: rawNotifs } = await api.get<Notification[]>('/notifications');
 
-        // Enriquecer payloads pessoais
-        const personalIds = rawNotifs
-          .filter(n => !n.isGlobal && n.senderId)
-          .map(n => n.senderId!) as number[];
-        const uniqueIds = Array.from(new Set(personalIds));
-
-        const users = await Promise.all(
-          uniqueIds.map(id => api.get<User>(`/users/${id}`))
-        );
+        // 2) Enriquecer notificações pessoais (sender)
+        const personalIds = rawNotifs.filter(n => !n.isGlobal && n.senderId).map(n => n.senderId!) as number[];
+        const uniqueUserIds = Array.from(new Set(personalIds));
+        const users = await Promise.all(uniqueUserIds.map(id => api.get<User>(`/users/${id}`)));
         const usersMap: Record<number, User> = {};
         users.forEach(({ data }) => { usersMap[data.id] = data; });
 
+        // 3) Enriquecer notificações de poll vindas do DB com título real
+        const pollIds = rawNotifs
+          .filter(n => n.isGlobal && n.type === 'poll')
+          .map(n => {
+            const m = n.link.match(/polls\/(.+)$/);
+            return m ? m[1] : null;
+          })
+          .filter((id): id is string => !!id);
+        const uniquePollIds = Array.from(new Set(pollIds));
+        const pollDetails = await Promise.all(
+          uniquePollIds.map(id => api.get(`/polls/${id}`))
+        );
+        const pollMap: Record<string, string> = {};
+        pollDetails.forEach(({ data }) => { pollMap[data.id] = data.question; });
+
+        // 4) Montar array de notificações enriquecidas
         const enriched = rawNotifs.map(n => {
           const base = {
             id: n.id,
@@ -102,6 +112,21 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
               }
             } as Notification;
           }
+          if (n.isGlobal && n.type === 'poll') {
+            const match = n.link.match(/polls\/(.+)$/);
+            const pollId = match ? match[1] : '';
+            return {
+              ...base,
+              payload: {
+                type: 'poll',
+                title: pollMap[pollId] || n.message,
+                message: n.message,
+                link: n.link!,
+                timestamp: +new Date(n.date),
+              }
+            } as Notification;
+          }
+          // casos globais padrão
           return {
             ...base,
             payload: {
@@ -117,10 +142,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         if (isMounted) dispatch({ type: 'LOAD', notifications: enriched });
       } catch (err: any) {
         console.error('fetchNotifications error:', err);
-        // Se 401, apenas resetar estado de notificações
-        if (err.response?.status === 401) {
-          dispatch({ type: 'RESET' });
-        }
+        if (err.response?.status === 401) dispatch({ type: 'RESET' });
       }
     })();
 
@@ -131,28 +153,63 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   useEffect(() => {
     if (!socket || !user) return;
 
-    const handler = (type: NotificationType) => (payload: any) => {
+    // DEBUG: loga tudo que chega
+    socket.onAny((event, payload) => {
+      console.log('[NotificationProvider] evento recebido:', event, payload);
+    });
+
+    // Novo post
+    socket.on('Feed:new-post', payload => {
       const notif: Notification = {
-        id: payload.id ?? Date.now().toString(),
-        type,
-        message: payload.message,
-        link: payload.link,
+        id: payload.postId ? `${payload.postId}-${payload.timestamp}` : Date.now().toString(),
+        type: 'post',
+        message: payload.message || 'Novo post',
+        link: payload.link || `/posts/${payload.postId}`,
         date: new Date().toISOString(),
         read: false,
-        isGlobal: payload.isGlobal ?? false,
+        isGlobal: false,
         payload,
       };
       dispatch({ type: 'RECEIVE', notification: notif });
-    };
+    });
 
-    socket.on('feed:new-post', handler('post'));
-    socket.on('match:update',   handler('match'));
-    socket.on('poll:update',    handler('poll'));
+    // Atualização de partida
+    socket.on('Match:update', payload => {
+      const notif: Notification = {
+        id: `match-${payload.matchId}-${payload.timestamp}`,
+        type: payload.type || 'match',
+        message: payload.message || 'Partida atualizada',
+        link: payload.link || `/matches/${payload.matchId}`,
+        date: new Date().toISOString(),
+        read: false,
+        isGlobal: true,
+        payload,
+      };
+      dispatch({ type: 'RECEIVE', notification: notif });
+    });
 
+    // Notificação global única (poll, event, broadcast, post)
+    socket.on('global:notification', payload => {
+      const globalType = payload.type as NotificationType;
+      const notif: Notification = {
+        id: payload.pollId ? `poll-${payload.pollId}-${payload.timestamp}` : Date.now().toString(),
+        type: globalType,
+        message: payload.message || payload.title || 'Atualização',
+        link: payload.link,
+        date: new Date().toISOString(),
+        read: false,
+        isGlobal: true,
+        payload,
+      };
+      dispatch({ type: 'RECEIVE', notification: notif });
+    });
+
+    // Cleanup
     return () => {
-      socket.off('feed:new-post');
-      socket.off('match:update');
-      socket.off('poll:update');
+      socket.offAny();
+      socket.off('Feed:new-post');
+      socket.off('Match:update');
+      socket.off('global:notification');
     };
   }, [socket, user]);
 
