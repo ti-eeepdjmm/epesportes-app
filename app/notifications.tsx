@@ -17,8 +17,8 @@ import { useTheme } from '@/hooks/useTheme';
 
 export default function NotificationsModal() {
   const router = useRouter();
-  const { state, dispatch } = useNotifications();
-  const theme = useTheme()
+  const { state, markAllRead } = useNotifications();
+  const theme = useTheme();
 
   // Ordena por data decrescente
   const items = state.items.slice().sort((a, b) =>
@@ -51,14 +51,14 @@ export default function NotificationsModal() {
   };
 
   const handleMarkAllRead = () => {
-    dispatch({ type: 'MARK_ALL_READ' });
+    markAllRead();
   };
 
   return (
     <View style={styles(theme).container}>
       <View style={styles(theme).topBar}>
         <TouchableOpacity onPress={handleBack} style={styles(theme).backButton}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color={theme.black} />
         </TouchableOpacity>
         <Text style={styles(theme).title}>Notificações</Text>
         <TouchableOpacity onPress={handleMarkAllRead} style={styles(theme).markAllButton}>
@@ -91,60 +91,61 @@ export default function NotificationsModal() {
   );
 }
 
-const styles = (theme:any) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.white,
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.grayLight,
-  },
-  backButton: {
-    marginRight: 12,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    flex: 1,
-    color: theme.black,
-  },
-  markAllButton: {
-    padding: 8,
-  },
-  markAllText: {
-    fontSize: 14,
-    color: theme.greenLight,
-  },
-  list: {
-    paddingBottom: 24,
-  },
-  sectionHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#f0f0f0',
-  },
-  sectionHeaderText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  separator: {
-    height: 1,
-    backgroundColor: theme.grayLight,
-    marginLeft: 72,
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: theme.black,
-  },
-});
+const styles = (theme: any) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.white,
+    },
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.grayLight,
+    },
+    backButton: {
+      marginRight: 12,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      flex: 1,
+      color: theme.black,
+    },
+    markAllButton: {
+      padding: 8,
+    },
+    markAllText: {
+      fontSize: 14,
+      color: theme.greenLight,
+    },
+    list: {
+      paddingBottom: 24,
+    },
+    sectionHeader: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      backgroundColor: '#f0f0f0',
+    },
+    sectionHeaderText: {
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    separator: {
+      height: 1,
+      backgroundColor: theme.grayLight,
+      marginLeft: 72,
+    },
+    emptyContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 16,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.black,
+    },
+  });

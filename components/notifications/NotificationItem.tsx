@@ -6,6 +6,7 @@ import { Notification, NotificationType } from '@/types/notification';
 import { relativeTime } from '@/utils/date';
 import { isPersonal, globalConfig, getNotificationLabel } from '@/utils/notifications';
 import { useTheme } from '@/hooks/useTheme';
+import { RelativePathString, router } from 'expo-router';
 
 interface Props {
   notification: Notification;
@@ -24,6 +25,19 @@ interface PersonalPayload {
 export const NotificationItem: FC<Props> = ({ notification, onPress }) => {
   const theme = useTheme();
   const { payload } = notification as { payload: any };
+
+
+  // Função para navegar
+  const handlePress = () => {
+    console.log('link', notification.link);
+    const path = notification.link.startsWith('/')
+      ? notification.link
+      : `/${notification.link}`;
+
+    const finalPath = notification.link.split('/')[0] === 'matchs' ? `/matches/${notification.link.split('/')[1]}` : path;
+   
+     router.push(finalPath as RelativePathString);
+  };
 
   // 1) Notificação pessoal
   if (isPersonal(notification.type)) {
@@ -51,7 +65,7 @@ export const NotificationItem: FC<Props> = ({ notification, onPress }) => {
     const isPoll = notification.type === 'poll';
     const pollLabel = isPoll && notification.message === 'Enquete Finalizada!' ? 'Enquete Finalizada!' : 'Nova Enquete:';
     return (
-      <TouchableOpacity style={styles.container} onPress={onPress}>
+      <TouchableOpacity style={styles.container} onPress={handlePress}>
         <View style={[styles.iconWrapper, { borderColor: theme.grayLight }]}>
           <Icon size={24} color={theme.greenLight} />
         </View>
@@ -75,7 +89,7 @@ export const NotificationItem: FC<Props> = ({ notification, onPress }) => {
 
   // 3) Fallback genérico
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
+    <TouchableOpacity style={styles.container} onPress={handlePress}>
       <View style={styles.content}>
         <Text style={[styles.message, { color: theme.black }]}>{notification.message}</Text>
         <Text style={[styles.time, { color: theme.gray }]}>

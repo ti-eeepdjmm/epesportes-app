@@ -84,7 +84,7 @@ export const globalConfig: Record<
   },
   poll: {
     Icon: MessagesIcon,
-    renderMessage: p => p.message == 'Enquete Finalizada!' ? `${p.title} Veja o resultado.` : p.title,
+    renderMessage: p => p.message == 'Enquete Finalizada!' ? `${p.title} Veja o resultado.` : `${p.title} Vote agora!`,
   },
   post: {
     Icon: MessagesIcon,

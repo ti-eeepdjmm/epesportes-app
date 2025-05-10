@@ -7,13 +7,14 @@ import React, {
   useEffect,
   ReactNode
 } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSocket } from './SocketContext';
 import api from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Notification, NotificationType, User } from '@/types';
 
 // Estado interno
-type State = { items: Notification[] };
+type State = { items: Notification[] };  
 
 // Ações possíveis
 type Action =
@@ -45,14 +46,26 @@ function reducer(state: State, action: Action): State {
 type ContextValue = {
   state: State;
   dispatch: React.Dispatch<Action>;
+  markAllRead: () => Promise<void>;
 };
-const NotificationContext = createContext<ContextValue>({ state: initialState, dispatch: () => {} });
+const NotificationContext = createContext<ContextValue>({
+  state: initialState,
+  dispatch: () => {},
+  markAllRead: async () => {}
+});
 export const useNotifications = () => useContext(NotificationContext);
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { socket } = useSocket();
   const { user } = useAuth();
   const [state, dispatch] = useReducer(reducer, initialState);
+
+  // Função para limpar globais lidas localmente
+  const markAllRead = async () => {
+    const now = new Date().toISOString();
+    await AsyncStorage.setItem('lastSeenGlobalAt', now);
+    dispatch({ type: 'MARK_ALL_READ' });
+  };
 
   // FETCH inicial: apenas quando user estiver disponível
   useEffect(() => {
@@ -64,17 +77,23 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     let isMounted = true;
     (async () => {
       try {
-        // 1) Buscar notificações brutas
+        // 1) Carrega o timestamp de última visualização de globais
+        const lastSeen = await AsyncStorage.getItem('lastSeenGlobalAt');
+        const lastTs = lastSeen ? new Date(lastSeen) : new Date(0);
+
+        // 2) Buscar notificações brutas
         const { data: rawNotifs } = await api.get<Notification[]>('/notifications');
 
-        // 2) Enriquecer notificações pessoais (sender)
-        const personalIds = rawNotifs.filter(n => !n.isGlobal && n.senderId).map(n => n.senderId!) as number[];
+        // 3) Enriquecer notificações pessoais
+        const personalIds = rawNotifs
+          .filter(n => !n.isGlobal && n.senderId)
+          .map(n => n.senderId!) as number[];
         const uniqueUserIds = Array.from(new Set(personalIds));
         const users = await Promise.all(uniqueUserIds.map(id => api.get<User>(`/users/${id}`)));
         const usersMap: Record<number, User> = {};
         users.forEach(({ data }) => { usersMap[data.id] = data; });
 
-        // 3) Enriquecer notificações de poll vindas do DB com título real
+        // 4) Enriquecer polls com título real
         const pollIds = rawNotifs
           .filter(n => n.isGlobal && n.type === 'poll')
           .map(n => {
@@ -84,12 +103,12 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
           .filter((id): id is string => !!id);
         const uniquePollIds = Array.from(new Set(pollIds));
         const pollDetails = await Promise.all(
-          uniquePollIds.map(id => api.get(`/polls/${id}`))
+          uniquePollIds.map(id => api.get<{ id: string; question: string }>(`/polls/${id}`))
         );
         const pollMap: Record<string, string> = {};
         pollDetails.forEach(({ data }) => { pollMap[data.id] = data.question; });
 
-        // 4) Montar array de notificações enriquecidas
+        // 5) Montar array de notificações enriquecidas + set read para globais
         const enriched = rawNotifs.map(n => {
           const base = {
             id: n.id,
@@ -97,7 +116,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             message: n.message,
             link: n.link,
             date: n.date,
-            read: n.read,
+            // sobrescreve apenas globais de acordo com lastSeen
+            read: n.isGlobal ? new Date(n.date) <= lastTs : n.read,
             isGlobal: n.isGlobal,
           };
           if (!n.isGlobal && n.senderId) {
@@ -126,7 +146,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
               }
             } as Notification;
           }
-          // casos globais padrão
+          // globais padrão
           return {
             ...base,
             payload: {
@@ -158,6 +178,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       console.log('[NotificationProvider] evento recebido:', event, payload);
     });
 
+    // handlers omitidos para brevidade (mantêm como antes)
     // Novo post
     socket.on('Feed:new-post', payload => {
       const notif: Notification = {
@@ -204,7 +225,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       dispatch({ type: 'RECEIVE', notification: notif });
     });
 
-    // Cleanup
+
+    // Limpa listeners ao desmontar
     return () => {
       socket.offAny();
       socket.off('Feed:new-post');
@@ -214,7 +236,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, [socket, user]);
 
   return (
-    <NotificationContext.Provider value={{ state, dispatch }}>
+    <NotificationContext.Provider value={{ state, dispatch, markAllRead }}>
       {children}
     </NotificationContext.Provider>
   );

@@ -15,6 +15,8 @@ export interface FormatOptions {
   timeOptions?: Intl.DateTimeFormatOptions;
   /** Formato estendido da data (ex.: "25 de janeiro de 2025"). Default: false */
   extendedDate?: boolean;
+  /** O pções adicionais para ocultar os segundos */
+  hideSeconds?: boolean;
 }
 
 /**
@@ -48,6 +50,7 @@ export function formatTimestamp(
     dateOptions,
     timeOptions,
     extendedDate = false,
+    hideSeconds = false,
   } = options;
 
   const date = parseTimestamp(ts);
@@ -76,7 +79,7 @@ export function formatTimestamp(
   const baseTimeOptions: Intl.DateTimeFormatOptions = {
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
+    ...(hideSeconds ? {} : { second: '2-digit' }),
     ...(timeOptions || {}),
   };
   const timePart = new Intl.DateTimeFormat(locale, baseTimeOptions).format(date);
@@ -133,3 +136,8 @@ export function relativeTime(
 // Exemplo de uso:
 // import { formatTimestamp, relativeTime } from './dateUtils';
 // console.log(relativeTime('2025-05-04T10:00:00')); // → "há X minutos"
+// console.log(formatTimestamp('2025-05-04T10:00:00', { includeTime: false })); // → "04/05/2025"
+// console.log(formatTimestamp('2025-05-04T10:00:00', { extendedDate: true })); // → "4 de maio de 2025"
+// console.log(formatTimestamp('2025-05-04T10:00:00', { includeTime: true })); // → "04/05/2025 10:00:00"
+// console.log(formatTimestamp('2025-05-04T10:00:00', { includeTime: true, dateOptions: { weekday: 'long' } })); // → "domingo, 04/05/2025 10:00:00"
+// console.log(formatTimestamp('2025-05-04T10:00:00', { includeTime: true, timeOptions: { hour12: false } })); // → "04/05/2025 10:00:00"

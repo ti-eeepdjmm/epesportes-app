@@ -29,7 +29,7 @@ export default function ProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { signOut, user, updateUser } = useAuth();
-  const { dispatch } = useNotifications();
+  const { markAllRead } = useNotifications();
   const { setTheme, theme: currentThemeKey } = useThemeContext();
 
   const [darkModeEnabled, setDarkModeEnabled] = useState(currentThemeKey === 'dark');
@@ -72,7 +72,7 @@ export default function ProfileScreen() {
       setDarkModeEnabled(false);
       setNotificationsEnabled(false);
       setTheme('light');
-      dispatch({ type: 'RESET' });
+      markAllRead();
       router.replace('/(auth)/login');
     } catch (err) {
       Alert.alert('Erro', 'Não foi possível sair.');
