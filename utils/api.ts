@@ -11,8 +11,6 @@ api.interceptors.request.use(
   async (config) => {
     const access = await getAccessToken();
     const refresh = await getRefreshToken();
-    // console.log('acessToken(API:request)', access);
-    // console.log('refreshToken(API:request)', refresh);
 
     config.headers.Authorization = `Bearer ${access || ''}`;
     config.headers['x-refresh-token'] = refresh || '';
