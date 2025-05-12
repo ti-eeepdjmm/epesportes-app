@@ -38,7 +38,7 @@ yarn-error.*
 app-example
 
 # Android
-/android/app/build/
-/android/.gradle/
-/android/.cxx/
-/android/local.properties
+android/
+
+#IOS
+ios/

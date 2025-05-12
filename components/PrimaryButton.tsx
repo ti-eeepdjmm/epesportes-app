@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     margin:'auto',
-    width:156,
+    minWidth:156,
     minHeight:32,
   },
   text: {

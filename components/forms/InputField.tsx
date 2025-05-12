@@ -11,6 +11,7 @@ interface InputFieldProps {
   control: Control<any>;
   secure?: boolean;
   keyboardType?: 'default' | 'email-address' | 'numeric';
+  disabled?: boolean;
 }
 
 export function InputField({
@@ -20,6 +21,7 @@ export function InputField({
   control,
   secure = false,
   keyboardType = 'default',
+  disabled,
 }: InputFieldProps) {
   const theme = useTheme();
   const [isFocused, setIsFocused] = useState(false);
@@ -50,6 +52,7 @@ export function InputField({
           isFocused && styles(theme).focusedInput,
           error && styles(theme).errorInput,
         ]}
+        editable={!disabled}
       />
       {secure && (
         <Pressable

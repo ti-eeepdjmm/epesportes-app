@@ -1,76 +1,56 @@
 // app/(root)/StartApp.tsx
-import { useEffect, useState } from 'react'
-import { router } from 'expo-router'
-import * as Linking from 'expo-linking'
-import { AppLoader } from '@/components/AppLoader'
-
+import { useEffect } from 'react';
+import { router } from 'expo-router';
+import * as Linking from 'expo-linking';
+import api from '@/utils/api';
 import {
   isUserRegistered,
   getAccessToken,
   clearTokens,
-  setUserRegistered
-} from '../utils/storage'
-import { useAuth } from '@/contexts/AuthContext'
-import { set } from 'date-fns'
+} from '../utils/storage';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function StartApp() {
-  const [loading, setLoading] = useState(true)
-   const { signOut } = useAuth()
+  const { signOut } = useAuth();
 
   useEffect(() => {
     async function init() {
       try {
-        // 1) Cold‑start: intercepta apenas 'callback'
-        const initialUrl = await Linking.getInitialURL()
-        console.log('Cold start:', initialUrl)
-        if (initialUrl) {
-          const { path, queryParams } = Linking.parse(initialUrl)
-          if (path === 'callback') {
-            const { access_token, refresh_token, type } = queryParams as {
-              access_token?: string
-              refresh_token?: string
-              type?: 'signup' | 'recovery' | 'oauth'
-            }
+        const initialUrl = await Linking.getInitialURL();
+        if (initialUrl?.includes('callback')) {
+          router.replace({
+            pathname: '/callback',
+            params: { url: encodeURIComponent(initialUrl) },
+          });
+          return;
+        }
 
-            router.replace({
-              pathname: '/callback',
-              params: {
-                access_token: access_token!,
-                refresh_token: refresh_token!,
-                type: type!,
-              },
-            })
-            return
+        const token = await getAccessToken();
+        const registered = await isUserRegistered();
+    
+
+        if (!token) {
+          router.replace(registered ? '/(auth)/login' : '/(onboarding)/start');
+        } else {
+          try {
+            await api.get('/auth/me');
+            router.replace('/(tabs)');
+          } catch {
+            await clearTokens();
+            await signOut();
+            router.replace('/(auth)/login');
           }
         }
-
-        // 2) Sem deep‑link: fluxo normal
-        // Limpa os tokens e o contexto de autenticação(temporário)
-        await clearTokens()
-        setUserRegistered(false) // Limpa o estado de registro do usuário
-        signOut() // Limpa o contexto de autenticação
-        
-        const token = await getAccessToken()
-        const registered = await isUserRegistered()
-
-        if (token) {
-          router.replace('/(tabs)')
-        } else if (!registered) {
-          router.replace('/(onboarding)/start')
-        } else {
-          router.replace('/(auth)/login')
-        }
-      } catch (err: any) {
-        console.error('Erro no fluxo de início:', err)
-        await clearTokens()
-        router.replace('/(auth)/login')
-      } finally {
-        setLoading(false)
+      } catch {
+        await clearTokens();
+        await signOut();
+        router.replace('/(auth)/login');
       }
     }
 
-    init()
-  }, [])
+    init();
+  }, [signOut]);
 
-  return loading ? <AppLoader visible /> : null
+  // tudo acontece atrás do SplashScreen, aqui é só “vazio”
+  return null;
 }

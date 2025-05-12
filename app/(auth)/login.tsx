@@ -22,6 +22,12 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/utils/supabase'
 import * as WebBrowser from 'expo-web-browser'
 import { REDIRECT_URI } from '@/utils/deep'  // já gerado com makeRedirectUri
+import axios, { AxiosError } from 'axios'
+import { User as LocalUser } from '@/types'
+import { getAccessToken } from '@/utils/storage'
+import { User } from '@supabase/supabase-js'
+
+
 
 // Validação com Zod
 const loginSchema = z.object({
@@ -53,24 +59,62 @@ export default function LoginScreen() {
   async function handleLogin(form: LoginFormData) {
     try {
       setUserLoading(true)
+  
+      // 1) Chama sua API
       const res = await api.post('/auth/login', {
         email: form.email,
         password: form.password,
       })
+  
+      // 2) Extrai user + tokens
       const user = res.data.user
-      const authH = res.headers['authorization']
-      const refreshH = res.headers['x-refresh-token']
-      if (!authH || !refreshH) throw new Error('Tokens não recebidos')
-      const accessToken = authH.replace(/^Bearer\s+/, '')
-      await signIn(accessToken, {
-        id: user.id,
-        name: user.user_metadata.full_name,
-        email: user.email ?? '',
-        profilePhoto: user.user_metadata.avatar_url,
+      const accessToken = await getAccessToken();
+  
+      // 3) Faz o signIn no contexto
+      const { data: localUser } = await api.get<LocalUser>(`/users/email/${user.email}`);
+      
+      await signIn(accessToken!, {
+        id: localUser.id,
+        authUserId: user.id,
+        name: localUser.name,
+        email: localUser.email,
+        profilePhoto: localUser.profilePhoto,
+        favoriteTeam: localUser.favoriteTeam,
+        isAthlete: localUser.isAthlete,
+        birthDate: localUser.birthDate,
+        hasPasswordLogin: true,
+        username: localUser.username,
+        createdAt: localUser.createdAt,
       })
+  
+      // 4) Redireciona
       router.replace('/(tabs)')
-    } catch (err: any) {
-      Alert.alert('Erro ao fazer login', err.message || 'Erro desconhecido')
+    } catch (err: unknown) {
+      // 5) Tratamento de erro
+      let message = 'Erro inesperado. Tente novamente mais tarde.'
+  
+      if (axios.isAxiosError(err)) {
+        const axiosErr = err as AxiosError<{ message?: string }>
+        const status = axiosErr.response!.status
+  
+        // backend retorna { message: string } no corpo
+        const apiMessage = axiosErr.response?.data?.message
+  
+        if (status === 401) {
+          message = apiMessage || 'E‑mail ou senha incorretos.'
+        } else if (status === 400) {
+          message = apiMessage || 'Dados inválidos. Verifique e tente de novo.'
+        } else if (status >= 500) {
+          message = 'Erro no servidor. Tente novamente mais tarde.'
+        } else if (status === undefined) {
+          // sem resposta: falha de rede
+          message = 'Sem conexão. Verifique sua internet.'
+        }
+      } else if (err instanceof Error) {
+        message = err.message
+      }
+  
+      Alert.alert('Erro ao fazer login', message)
     } finally {
       setUserLoading(false)
     }
@@ -137,11 +181,11 @@ export default function LoginScreen() {
         />
 
         <View style={styles.links}>
-          <StyledText style={{ color: theme.greenLight }}>
+          <StyledText style={{ color: theme.greenLight,}}>
             Ainda não tem conta?
           </StyledText>
           <StyledText
-            style={[styles.link, { color: theme.greenLight }]}
+            style={[styles.link, { color: theme.greenLight,}]}
             onPress={() => router.push('/(auth)/signup-start')}
           >
             Cadastre‑se
@@ -165,7 +209,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, justifyContent: 'center' },
-  links: { flexDirection: 'row', justifyContent: 'center', marginTop: 16, gap: 8 },
+  links: { flexDirection: 'row', justifyContent: 'center', marginTop: 16, gap: 8, width: '100%' },
   title: { fontSize: 40, textAlign: 'center' },
   subtitle: { fontSize: 16, textAlign: 'center', marginBottom: 24 },
   form: { gap: 0 },
