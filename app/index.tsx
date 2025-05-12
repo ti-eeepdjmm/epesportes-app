@@ -27,6 +27,7 @@ export default function StartApp() {
 
         const token = await getAccessToken();
         const registered = await isUserRegistered();
+    
 
         if (!token) {
           router.replace(registered ? '/(auth)/login' : '/(onboarding)/start');

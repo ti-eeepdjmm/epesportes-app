@@ -14,9 +14,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import api from '@/utils/api';
 import { formatTimestamp } from '@/utils/date';
 import { useTheme } from '@/hooks/useTheme';
-import { StyledTitle } from '@/components/StyledTitle';
-import { StyledText } from '@/components/StyledText';
 import { Ionicons } from '@expo/vector-icons';
+import { AppLoader } from '@/components/AppLoader';
 
 // Modela a resposta da API conforme o JSON fornecido
 interface MatchDetail {
@@ -70,7 +69,7 @@ export default function MatchScreen() {
   if (loading) {
     return (
       <View style={styles(theme).center}>
-        <ActivityIndicator color={theme.grayDetail} />
+         <AppLoader visible />
       </View>
     );
   }

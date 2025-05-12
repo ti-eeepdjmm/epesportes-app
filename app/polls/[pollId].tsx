@@ -12,6 +12,7 @@ import api from '@/utils/api';
 import { formatTimestamp } from '@/utils/date';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
+import { AppLoader } from '@/components/AppLoader';
 
 interface PollDetail {
     id: string;
@@ -50,7 +51,7 @@ export default function PollScreen() {
     if (loading) {
         return (
             <View style={styles(theme).center}>
-                <ActivityIndicator />
+                <AppLoader visible />
             </View>
         );
     }
