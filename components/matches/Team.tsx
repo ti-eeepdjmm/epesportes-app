@@ -22,8 +22,8 @@ export const Team: FC<Props> = ({ team, score, reverse }) => {
         {isSvg ? (
           <View style={[styles.logo, { borderColor: theme.grayLight }]}>
             <SvgCssUri
-              width={40}
-              height={40}
+              width={48}
+              height={48}
               uri={team.logo}
             />
           </View>
@@ -56,9 +56,9 @@ const styles = StyleSheet.create({
     width: 60,
   },
   logo: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 28,
     marginBottom: 4,
     borderWidth: 1,
     alignItems: 'center',

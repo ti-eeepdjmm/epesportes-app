@@ -1,44 +1,20 @@
 // app/matches/[matchId].tsx
 
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  ActivityIndicator,
-  Image,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity
-} from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import api from '@/utils/api';
-import { formatTimestamp } from '@/utils/date';
 import { useTheme } from '@/hooks/useTheme';
-import { Ionicons } from '@expo/vector-icons';
 import { AppLoader } from '@/components/AppLoader';
+import { Ionicons } from '@expo/vector-icons';
+import { MatchCardDetail } from '@/components/matches/MatchCardDetail';
+import { MatchSummary } from '@/types';
 
-// Modela a resposta da API conforme o JSON fornecido
-interface MatchDetail {
+interface MatchDetailAPI {
   id: number;
-  game: {
-    id: number;
-    name: string;
-    description: string;
-    rules: string;
-    created_at: string;
-  };
-  team1: {
-    id: number;
-    name: string;
-    logo: string;
-    createdAt: string;
-  };
-  team2: {
-    id: number;
-    name: string;
-    logo: string;
-    createdAt: string;
-  };
+  game: { id: number; name: string; description: string; rules: string; created_at: string };
+  team1: { id: number; name: string; logo: string; createdAt: string };
+  team2: { id: number; name: string; logo: string; createdAt: string };
   score_team1: number;
   score_team2: number;
   status: 'scheduled' | 'completed' | 'cancelled' | string;
@@ -47,8 +23,9 @@ interface MatchDetail {
 
 export default function MatchScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
+  const router = useRouter();
   const theme = useTheme();
-  const [match, setMatch] = useState<MatchDetail | null>(null);
+  const [match, setMatch] = useState<MatchDetailAPI | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +33,7 @@ export default function MatchScreen() {
     if (!matchId) return;
     (async () => {
       try {
-        const res = await api.get<MatchDetail>(`/matches/${matchId}`);
+        const res = await api.get<MatchDetailAPI>(`/matches/${matchId}`);
         setMatch(res.data);
       } catch {
         setError('Erro ao carregar partida.');
@@ -66,13 +43,16 @@ export default function MatchScreen() {
     })();
   }, [matchId]);
 
+  const handleBack = () => router.back();
+
   if (loading) {
     return (
       <View style={styles(theme).center}>
-         <AppLoader visible />
+        <AppLoader visible />
       </View>
     );
   }
+
   if (error || !match) {
     return (
       <View style={styles(theme).center}>
@@ -83,18 +63,17 @@ export default function MatchScreen() {
     );
   }
 
-  // Traduz status para PT-BR
-  const statusLabel =
-    match.status === 'completed'
-      ? 'Finalizada'
-      : match.status === 'scheduled'
-        ? 'Agendada'
-        : match.status.charAt(0).toUpperCase() + match.status.slice(1);
-
-  const handleBack = () => {
-    router.back();
+  // Mapear para MatchSummary
+  const summary: MatchSummary = {
+    id: match.id,
+    game: match.game,
+    dateTime: match.dateTime,
+    status: match.status,
+    team1: match.team1,
+    team2: match.team2,
+    score_team1: match.score_team1,
+    score_team2: match.score_team2,
   };
-
 
   return (
     <ScrollView contentContainerStyle={styles(theme).container}>
@@ -102,37 +81,10 @@ export default function MatchScreen() {
         <TouchableOpacity onPress={handleBack} style={styles(theme).backButton}>
           <Ionicons name="arrow-back" size={24} color={theme.black} />
         </TouchableOpacity>
-         <Text style={[styles(theme).title,  { color: theme.black }]}>Partida</Text>
-      </View>
-      <View style={styles(theme).teams}>
-        <View style={styles(theme).team}>
-          {match.team1.logo && (
-            <Image source={{ uri: match.team1.logo }} style={styles(theme).logo} />
-          )}
-          <Text style={[styles(theme).teamName, { color: theme.black }]}>
-            {match.team1.name}
-          </Text>
-          <Text style={[styles(theme).score, { color: theme.greenLight }]}>
-            {match.score_team1}
-          </Text>
-        </View>
-        <Text style={[styles(theme).vs, { color: theme.black }]}>x</Text>
-        <View style={styles(theme).team}>
-          {match.team2.logo && (
-            <Image source={{ uri: match.team2.logo }} style={styles(theme).logo} />
-          )}
-          <Text style={[styles(theme).teamName, { color: theme.black }]}>
-            {match.team2.name}
-          </Text>
-          <Text style={[styles(theme).score, { color: theme.greenLight }]}>
-            {match.score_team2}
-          </Text>
-        </View>
+        <Text style={[styles(theme).title, { color: theme.black }]}>Detalhes da Partida</Text>
       </View>
 
-      <Text style={[styles(theme).subtitle, { color: theme.greenLight }]}>
-        {statusLabel} - {formatTimestamp(match.dateTime, { includeTime: true, timeOptions: { hour: '2-digit', minute: '2-digit' } })}
-      </Text>
+      <MatchCardDetail match={summary} />
     </ScrollView>
   );
 }
@@ -149,58 +101,6 @@ const styles = (theme: any) =>
       justifyContent: 'center',
       backgroundColor: theme.background,
     },
-    title: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      marginBottom: 4,
-    },
-    subtitle: {
-      fontSize: 14,
-      marginBottom: 16,
-    },
-    teams: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: 16,
-    },
-    team: {
-      alignItems: 'center',
-      flex: 1,
-    },
-    logo: {
-      width: 48,
-      height: 48,
-      marginBottom: 4,
-      borderRadius: 24,
-    },
-    teamName: {
-      fontSize: 16,
-      marginBottom: 2,
-    },
-    score: {
-      fontSize: 18,
-      fontWeight: '600',
-    },
-    vs: {
-      fontSize: 18,
-      fontWeight: '600',
-      marginHorizontal: 8,
-    },
-    sectionHeader: {
-      fontSize: 16,
-      fontWeight: '600',
-      marginTop: 16,
-      marginBottom: 4,
-    },
-    description: {
-      fontSize: 14,
-      marginBottom: 12,
-    },
-    subtitleText: {},
-    error: {
-      fontSize: 16,
-    },
     topBar: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -208,5 +108,12 @@ const styles = (theme: any) =>
     },
     backButton: {
       marginRight: 12,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: 'bold',
+    },
+    error: {
+      fontSize: 16,
     },
   });
