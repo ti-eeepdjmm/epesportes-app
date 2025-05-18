@@ -14,6 +14,7 @@ import { MatchSummary } from '@/types';
 import { formatTimestamp } from '@/utils/date';
 import { Team } from './Team';
 import api from '@/utils/api';
+import { LineupBoard } from './LineupBoard';
 
 interface Props {
   match: MatchSummary;
@@ -174,9 +175,7 @@ export const MatchCardDetail: FC<Props> = ({ match }) => {
         )
       ) : (
         <View style={styles(theme).lineupContainer}>
-          <Text style={[styles(theme).placeholderText, { color: theme.gray }]}>  
-            Escalação dos times aqui (grid, lista de jogadores, etc.)
-          </Text>
+          <LineupBoard matchId={match.id} />
         </View>
       )}
     </ScrollView>
@@ -185,7 +184,7 @@ export const MatchCardDetail: FC<Props> = ({ match }) => {
 
 const styles = (theme: any) =>
   StyleSheet.create({
-    container: { padding: 16, backgroundColor: theme.white },
+    container: { padding: 16},
     headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
     headerMiddle: { flex: 1, alignItems: 'center' },
     gameName: { fontSize: 16, fontWeight: '600' },
@@ -194,7 +193,7 @@ const styles = (theme: any) =>
     tabContainer: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: theme.grayLight, marginBottom: 16 },
     tab: { flex: 1, alignItems: 'center', paddingVertical: 8, borderBottomWidth: 2, borderBottomColor: 'transparent' },
     statsContainer: {},
-    sectionTitle: { fontSize: 14, fontWeight: '600', marginBottom: 4 },
+    sectionTitle: { fontSize: 14, fontWeight: '600', marginBottom: 4, color: theme.black },
     possessionTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
     possessionBarContainer: { flexDirection: 'row', height: 20, borderRadius: 10, overflow: 'hidden', marginBottom: 16 },
     possessionBar: { backgroundColor: theme.grayLight, justifyContent: 'center' },
@@ -209,6 +208,6 @@ const styles = (theme: any) =>
     playersGoalsContainer: { flexDirection: 'row', justifyContent: 'space-between'},
     playersGoalsSide: { flex: 1, alignItems: 'center' },
     playerGoalText: { fontSize: 12 },
-    lineupContainer: { alignItems: 'center', paddingVertical: 32 },
+    lineupContainer: { alignItems: 'center'},
     placeholderText: { fontSize: 14 },
   });

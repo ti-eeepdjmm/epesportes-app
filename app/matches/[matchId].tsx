@@ -93,13 +93,14 @@ const styles = (theme: any) =>
   StyleSheet.create({
     container: {
       padding: 16,
-      backgroundColor: theme.background,
+      backgroundColor: theme.white,
+      minHeight: '100%',
     },
     center: {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: theme.background,
+      backgroundColor: theme.white,
     },
     topBar: {
       flexDirection: 'row',
