@@ -40,13 +40,14 @@ export const MatchCardDetail: FC<Props> = ({ match }) => {
   const [activeTab, setActiveTab] = useState<'statistics' | 'lineup'>('statistics');
   const [stats, setStats] = useState<{ left: Stat; right: Stat } | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [renderedLineupBoard, setRenderedLineupBoard] = useState<JSX.Element | null>(null);
 
   const statusLabel =
     match.status === 'completed'
       ? 'Encerrado'
       : match.status === 'scheduled'
-      ? 'Agendada'
-      : match.status;
+        ? 'Agendada'
+        : match.status;
 
   useEffect(() => {
     let isMounted = true;
@@ -65,6 +66,12 @@ export const MatchCardDetail: FC<Props> = ({ match }) => {
     return () => { isMounted = false; };
   }, [match.id]);
 
+  useEffect(() => {
+    if (activeTab === 'lineup' && !renderedLineupBoard) {
+      setRenderedLineupBoard(<LineupBoard matchId={match.id} />);
+    }
+  }, [activeTab, renderedLineupBoard, match.id]);
+
   return (
     <ScrollView contentContainerStyle={styles(theme).container}>
       {/* Header */}
@@ -74,10 +81,10 @@ export const MatchCardDetail: FC<Props> = ({ match }) => {
           <Text style={[styles(theme).gameName, { color: theme.black }]}>
             {match.game.name}
           </Text>
-          <Text style={[styles(theme).date, { color: theme.gray }]}>  
+          <Text style={[styles(theme).date, { color: theme.gray }]}>
             {formatTimestamp(match.dateTime, { includeTime: true, hideSeconds: true })}
           </Text>
-          <Text style={[styles(theme).status, { color: theme.greenLight }]}>  
+          <Text style={[styles(theme).status, { color: theme.greenLight }]}>
             {statusLabel}
           </Text>
         </View>
@@ -105,7 +112,7 @@ export const MatchCardDetail: FC<Props> = ({ match }) => {
       </View>
 
       {/* Conteúdo */}
-      {activeTab === 'statistics' ? (
+      {activeTab === 'statistics' && (
         loadingStats || !stats ? (
           <ActivityIndicator color={theme.greenLight} style={{ marginTop: 32 }} />
         ) : (
@@ -115,12 +122,12 @@ export const MatchCardDetail: FC<Props> = ({ match }) => {
               <Text style={[styles(theme).sectionTitle, { flex: 1, textAlign: 'center' }]}>Posse de bola</Text>
             </View>
             <View style={styles(theme).possessionBarContainer}>
-              <View style={[styles(theme).possessionBar, { flex: stats.left.possession }]}>  
+              <View style={[styles(theme).possessionBar, { flex: stats.left.possession }]}>
                 <Text style={[styles(theme).possessionTextLeft]}>
                   {stats.left.possession}%
                 </Text>
               </View>
-              <View style={[styles(theme).possessionBarOpp, { flex: stats.right.possession }]}>  
+              <View style={[styles(theme).possessionBarOpp, { flex: stats.right.possession }]}>
                 <Text style={[styles(theme).possessionTextRight]}>
                   {stats.right.possession}%
                 </Text>
@@ -138,7 +145,7 @@ export const MatchCardDetail: FC<Props> = ({ match }) => {
               <View style={styles(theme).playersGoalsSide}>
                 {stats.left.playersGoals &&
                   Object.entries(stats.left.playersGoals).map(([name, count]) => (
-                    <Text key={name} style={[styles(theme).playerGoalText, { color: theme.gray }]}>  
+                    <Text key={name} style={[styles(theme).playerGoalText, { color: theme.gray }]}>
                       {name} ({count})
                     </Text>
                   ))}
@@ -146,7 +153,7 @@ export const MatchCardDetail: FC<Props> = ({ match }) => {
               <View style={styles(theme).playersGoalsSide}>
                 {stats.right.playersGoals &&
                   Object.entries(stats.right.playersGoals).map(([name, count]) => (
-                    <Text key={name} style={[styles(theme).playerGoalText, { color: theme.gray }]}>  
+                    <Text key={name} style={[styles(theme).playerGoalText, { color: theme.gray }]}>
                       ({count}) {name}
                     </Text>
                   ))}
@@ -173,18 +180,21 @@ export const MatchCardDetail: FC<Props> = ({ match }) => {
             ))}
           </View>
         )
-      ) : (
+      )}
+
+      {activeTab === 'lineup' && (
         <View style={styles(theme).lineupContainer}>
-          <LineupBoard matchId={match.id} />
+          {renderedLineupBoard}
         </View>
       )}
+
     </ScrollView>
   );
 };
 
 const styles = (theme: any) =>
   StyleSheet.create({
-    container: { padding: 16},
+    container: { padding: 16 },
     headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
     headerMiddle: { flex: 1, alignItems: 'center' },
     gameName: { fontSize: 16, fontWeight: '600' },
@@ -205,9 +215,9 @@ const styles = (theme: any) =>
     statValue: { fontSize: 14, fontWeight: '600', color: theme.black, flex: 1, textAlign: 'center' },
     statDivider: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 1, backgroundColor: theme.grayLight },
     playersSectionTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-    playersGoalsContainer: { flexDirection: 'row', justifyContent: 'space-between'},
+    playersGoalsContainer: { flexDirection: 'row', justifyContent: 'space-between' },
     playersGoalsSide: { flex: 1, alignItems: 'center' },
     playerGoalText: { fontSize: 12 },
-    lineupContainer: { alignItems: 'center'},
+    lineupContainer: { alignItems: 'center' },
     placeholderText: { fontSize: 14 },
   });
