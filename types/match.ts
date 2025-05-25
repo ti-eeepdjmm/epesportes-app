@@ -23,3 +23,27 @@ export interface game{
   rules: string;
   created_at: string;
 }
+
+export interface LineupEntry {
+  id: number;
+  team: { id: number; name: string; logo: string };
+  player: { id: number; position: string; jerseyNumber: number };
+  starter: boolean;
+}
+
+export interface PlayerDetail {
+  id: number;
+  name: string;
+  avatar: string;
+  position: string;
+  jerseyNumber: number;
+  starter: boolean;
+}
+
+export interface LineupByTeam {
+  teamId: number;
+  teamName: string;
+  teamLogo: string;
+  starters: PlayerDetail[];
+  reserves: PlayerDetail[];
+}

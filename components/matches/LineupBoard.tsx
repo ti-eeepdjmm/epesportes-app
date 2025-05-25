@@ -1,122 +1,35 @@
 // components/matches/LineupBoard.tsx
 
-import React, { FC, useEffect, useRef, useState } from 'react';
+import React, { FC } from 'react';
 import {
   View,
   Text,
   Image,
   StyleSheet,
-  ActivityIndicator,
   Dimensions,
 } from 'react-native';
 import { SvgUri } from 'react-native-svg';
-import api from '@/utils/api';
 import { useTheme } from '@/hooks/useTheme';
-import { User } from '@/types';
-import { SvgCssUri } from 'react-native-svg/css'; 
-
-interface LineupEntry {
-  id: number;
-  team: { id: number; name: string; logo: string };
-  player: { id: number; position: string; jerseyNumber: number };
-  starter: boolean;
-}
-
-interface PlayerDetail {
-  id: number;
-  name: string;
-  avatar: string;
-  position: string;
-  jerseyNumber: number;
-  starter: boolean;
-}
-
-interface LineupByTeam {
-  teamId: number;
-  teamName: string;
-  teamLogo: string;
-  starters: PlayerDetail[];
-  reserves: PlayerDetail[];
-}
+import { LineupByTeam } from '@/types';
+import { SvgCssUri } from 'react-native-svg/css';
 
 interface Props {
-  matchId: number;
+  data: LineupByTeam[] | null;
 }
 
-
-export const LineupBoard: FC<Props> = ({ matchId }) => {
+export const LineupBoard: FC<Props> = ({ data }) => {
   const theme = useTheme();
   const styles = makeStyles(theme);
-  const [lineups, setLineups] = useState<LineupByTeam[]>([]);
-  const [loading, setLoading] = useState(true);
-  const hasLoaded = useRef(false);
 
-  useEffect(() => {
-     
-    if (hasLoaded.current) return; // já carregado, evita nova requisição
-    
-    hasLoaded.current = true;
-    let isMounted = true;
-    (async () => {
-      try {
-        const { data: entries } = await api.get<LineupEntry[]>(`/lineups/match/${matchId}`);
-        const grouped: Record<number, LineupEntry[]> = {};
-        entries.forEach(e => {
-          if (!grouped[e.team.id]) grouped[e.team.id] = [];
-          grouped[e.team.id].push(e);
-        });
-
-        const result = await Promise.all(
-          Object.values(grouped).map(async arr => {
-            const { team } = arr[0];
-            const details: PlayerDetail[] = await Promise.all(
-              arr.map(async entry => {
-                const res = await api.get<{ user: User }>(`/players/${entry.player.id}`);
-                const userData = res.data.user;
-
-                return {
-                  id: userData.id,
-                  name: userData.name,
-                  avatar: userData.profilePhoto || 'https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/avatars/default-avatar.png',
-                  position: entry.player.position,
-                  jerseyNumber: entry.player.jerseyNumber,
-                  starter: entry.starter,
-                };
-              })
-            );
-            return {
-              teamId: team.id,
-              teamName: team.name,
-              teamLogo: team.logo,
-              starters: details.filter(d => d.starter),
-              reserves: details.filter(d => !d.starter),
-            };
-          })
-        );
-        if (isMounted) setLineups(result);
-      } catch (err) {
-        // console.error('Erro ao carregar lineup', err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    })();
-    return () => { isMounted = false; };
-  }, [matchId]);
-
-  if (loading) {
-    return <ActivityIndicator color={theme.greenLight} style={styles.loader} />;
+  if (!data || data.length === 0 || data.every(t => t.starters.length === 0)) {
+    return (
+      <View style={{ padding: 16 }}>
+        <Text style={{ textAlign: 'center', fontSize: 16, color: theme.black }}>
+          Nenhuma escalação registrada para esta partida.
+        </Text>
+      </View>
+    );
   }
-
-  const hasStarters = lineups.some(team => team.starters && team.starters.length > 0);
-  if (!hasStarters) {
-  return (
-    <View style={{ padding: 16 }}>
-      <Text style={{ textAlign: 'center', fontSize: 16, color: theme.black }}>
-        Nenhuma escalação registrada para esta partida.
-      </Text>
-    </View>
-  );
-}
 
   const { width } = Dimensions.get('window');
   const courtHeight = 500;
@@ -145,73 +58,65 @@ export const LineupBoard: FC<Props> = ({ matchId }) => {
       pivo: courtHeight * 0.70,
     };
 
-    const yPos = isSecondTeam
-      ? bottomPositions[pos]
-      : topPositions[pos];
-
+    const yPos = isSecondTeam ? bottomPositions[pos] : topPositions[pos];
     const xPos =
       pos === 'alaDireita' ? threeQuarterX :
-        pos === 'alaEsquerda' ? quarterX :
-          centerX;
+      pos === 'alaEsquerda' ? quarterX :
+      centerX;
 
     return { top: yPos, left: xPos };
   };
 
   const SVG_URL = 'https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/logos/board-quadra-futsal.svg';
-  const first = lineups[0];
-  const second = lineups[1];
+  const first = data[0];
+  const second = data[1];
 
   return (
     <View>
       <View style={styles.courtContainer}>
         <SvgUri uri={SVG_URL} width="100%" height="100%" />
 
-        
-         {first && (
-          <View style={[styles.teamLogo, styles.topLeftLogo]}>
-            <SvgCssUri
-              width={40}
-              height={40}
-              uri={first.teamLogo}
-            />
+        {/* Logo do Time 1 (parte de cima da quadra) */}
+        {first && (
+          <View style={[styles.teamLogo, styles.logoTop]}>
+            <SvgCssUri width={40} height={40} uri={first.teamLogo} />
           </View>
         )}
+
+        {/* Logo do Time 2 (parte de baixo da quadra) */}
         {second && (
-          <View style={[styles.teamLogo, styles.bottomRightLogo]}>
-            <SvgCssUri
-              width={40}
-              height={40}
-              uri={second.teamLogo}  
-            />
+          <View style={[styles.teamLogo, styles.logoBottom]}>
+            <SvgCssUri width={40} height={40} uri={second.teamLogo} />
           </View>
         )}
-        
+
         {[...(first?.starters || []), ...(second?.starters || [])].map(p => {
           const isSecond = second?.starters.some(s => s.id === p.id);
           return (
             <View key={p.id} style={[styles.player, getPositionStyle(p.position as PlayerPosition, isSecond)]}>
-              <Image source={{ uri: p.avatar }} style={[styles.avatar, { borderColor: isSecond ? theme.white : theme.yellow }]} />
+              <Image
+                source={{ uri: p.avatar }}
+                style={[styles.avatar, { borderColor: isSecond ? theme.white : theme.yellow }]}
+              />
               <Text style={styles.jersey}>{p.jerseyNumber}</Text>
               <Text style={styles.playerName}>{p.name}</Text>
             </View>
           );
-        })} 
-
-
+        })}
       </View>
+
       <View style={styles.reservesSection}>
-        
         <View>
-           <Text style={styles.reservesLabel}>Reservas</Text>
+          <Text style={styles.reservesLabel}>Reservas</Text>
         </View>
-        <View style={styles.reservesContainer} >
-          <View style={styles.teamReserves}> 
+        <View style={styles.reservesContainer}>
+          <View style={styles.teamReserves}>
             <Text style={styles.reservesTitle}>{first?.teamName}</Text>
             <View style={styles.reservesList}>
               {first?.reserves.map(p => (
                 <View key={p.id} style={styles.reserveItem}>
                   <Image source={{ uri: p.avatar }} style={styles.reserveAvatar} />
-                   <Text style={[styles.jersey, styles.jerseyReserve]}>{p.jerseyNumber}</Text>
+                  <Text style={[styles.jersey, styles.jerseyReserve]}>{p.jerseyNumber}</Text>
                   <Text style={styles.reserveName}>{p.name}</Text>
                 </View>
               ))}
@@ -231,7 +136,6 @@ export const LineupBoard: FC<Props> = ({ matchId }) => {
             </View>
           </View>
         </View>
-  
       </View>
     </View>
   );
@@ -239,12 +143,11 @@ export const LineupBoard: FC<Props> = ({ matchId }) => {
 
 const makeStyles = (theme: any) =>
   StyleSheet.create({
-    loader: { margin: 16 },
     courtContainer: {
       width: '100%',
       height: 600,
       position: 'relative',
-      marginBottom: 32, // espaço para os reservas
+      marginBottom: 32,
     },
     player: { position: 'absolute', alignItems: 'center' },
     avatar: {
@@ -273,16 +176,50 @@ const makeStyles = (theme: any) =>
     },
     playerName: {
       position: 'absolute',
-      top: 48 + 4,
+      top: 52,
       fontSize: 10,
       color: theme.white,
       width: 60,
       textAlign: 'center',
     },
+    teamLogo: {
+      position: 'absolute',
+      width: 42,
+      height: 42,
+      zIndex: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.white,
+      borderRadius: 24,
+      borderWidth: 2,
+      borderColor: theme.gray,
+    },
+    logoTop: {
+      top: 12,
+      left: '50%',
+      marginLeft: -42,
+    },
+    logoBottom: {
+      bottom: 12,
+      left: '50%',
+      marginLeft: -42,
+    },
     reservesSection: {
       flexDirection: 'column',
       justifyContent: 'flex-start',
       paddingHorizontal: 32,
+    },
+    reservesLabel: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginBottom: 4,
+      color: theme.greenLight,
+    },
+    reservesContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
     },
     teamReserves: { flex: 1, padding: 8 },
     reservesTitle: {
@@ -291,11 +228,6 @@ const makeStyles = (theme: any) =>
       marginBottom: 16,
       color: theme.black,
       textAlign: 'center',
-    },
-    reservesContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
     },
     reservesList: {
       flexDirection: 'row',
@@ -319,30 +251,6 @@ const makeStyles = (theme: any) =>
       fontSize: 12,
       textAlign: 'center',
       color: theme.black,
-    },
-    teamLogo: {
-      position: 'absolute',
-      borderWidth: 2,
-      width: 48,
-      height: 48,
-      borderColor: theme.black,
-      borderRadius: 24,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    topLeftLogo: {
-      top: 100,
- 
-    },
-    bottomRightLogo: {
-      bottom: 100,
-    },
-    reservesLabel: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      textAlign: 'center',
-      marginBottom: 4,
-      color: theme.greenLight,
     },
     divider: {
       width: 1.5,

@@ -10,11 +10,13 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
-import { MatchSummary } from '@/types';
+import { LineupEntry, MatchSummary, PlayerDetail, User } from '@/types';
 import { formatTimestamp } from '@/utils/date';
 import { Team } from './Team';
 import api from '@/utils/api';
 import { LineupBoard } from './LineupBoard';
+import { LineupByTeam } from '@/types'; // Certifique-se de que o caminho está correto
+
 
 interface Props {
   match: MatchSummary;
@@ -40,7 +42,9 @@ export const MatchCardDetail: FC<Props> = ({ match }) => {
   const [activeTab, setActiveTab] = useState<'statistics' | 'lineup'>('statistics');
   const [stats, setStats] = useState<{ left: Stat; right: Stat } | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
-  const [renderedLineupBoard, setRenderedLineupBoard] = useState<JSX.Element | null>(null);
+  const [lineupData, setLineupData] = useState<LineupByTeam[] | null>(null);
+  const [loadingLineup, setLoadingLineup] = useState(true);
+
 
   const statusLabel =
     match.status === 'completed'
@@ -49,6 +53,7 @@ export const MatchCardDetail: FC<Props> = ({ match }) => {
         ? 'Agendada'
         : match.status;
 
+  // Carrega as estatísticas do jogo
   useEffect(() => {
     let isMounted = true;
     (async () => {
@@ -67,10 +72,61 @@ export const MatchCardDetail: FC<Props> = ({ match }) => {
   }, [match.id]);
 
   useEffect(() => {
-    if (activeTab === 'lineup' && !renderedLineupBoard) {
-      setRenderedLineupBoard(<LineupBoard matchId={match.id} />);
-    }
-  }, [activeTab, renderedLineupBoard, match.id]);
+    let isMounted = true;
+
+    (async () => {
+      try {
+        const { data: entries } = await api.get<LineupEntry[]>(`/lineups/match/${match.id}`);
+        const grouped: Record<number, LineupEntry[]> = {};
+        entries.forEach(e => {
+          if (!grouped[e.team.id]) grouped[e.team.id] = [];
+          grouped[e.team.id].push(e);
+        });
+
+        const result = await Promise.all(
+          Object.values(grouped).map(async arr => {
+            const { team } = arr[0];
+            const details: PlayerDetail[] = await Promise.all(
+              arr.map(async entry => {
+                const res = await api.get<{ user: User }>(`/players/${entry.player.id}`);
+                const userData = res.data.user;
+
+                return {
+                  id: userData.id,
+                  name: userData.name,
+                  avatar: userData.profilePhoto || 'https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/avatars/default-avatar.png',
+                  position: entry.player.position,
+                  jerseyNumber: entry.player.jerseyNumber,
+                  starter: entry.starter,
+                };
+              })
+            );
+            return {
+              teamId: team.id,
+              teamName: team.name,
+              teamLogo: team.logo,
+              starters: details.filter(d => d.starter),
+              reserves: details.filter(d => !d.starter),
+            };
+          })
+        );
+
+        if (isMounted) {
+          setLineupData(result);
+          setLoadingLineup(false);
+        }
+      } catch (err) {
+        // console.error('Erro ao carregar lineup', err);
+        setLoadingLineup(false);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [match.id]);
+
+
 
   return (
     <ScrollView contentContainerStyle={styles(theme).container}>
@@ -184,7 +240,11 @@ export const MatchCardDetail: FC<Props> = ({ match }) => {
 
       {activeTab === 'lineup' && (
         <View style={styles(theme).lineupContainer}>
-          {renderedLineupBoard}
+          {loadingLineup ? (
+            <ActivityIndicator color={theme.greenLight} />
+          ) : (
+            <LineupBoard data={lineupData} />
+          )}
         </View>
       )}
 
