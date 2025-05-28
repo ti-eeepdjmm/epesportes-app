@@ -29,7 +29,7 @@ export const MatchCardSummary: FC<Props> = ({ match, onPress }) => {
 
   return (
     <TouchableOpacity
-      style={[styles.card, { backgroundColor: theme.white, borderColor: theme.greenLight }]}
+      style={[styles.card, { backgroundColor: theme.white, borderColor: theme.grayLight }]}
       activeOpacity={0.8}
       onPress={onPress}
     >
@@ -65,6 +65,15 @@ const styles = StyleSheet.create({
     padding: 12,
     marginVertical: 8,
     marginHorizontal: 16,
+    // iOS
+     shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    // Android
+    elevation: 5,
   },
   row: {
     flexDirection: 'row',

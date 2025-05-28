@@ -1,88 +1,145 @@
-// app/components/polls/PollCard.tsx
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Modal, Image } from 'react-native';
+// components/polls/PollCard.tsx
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  FlatList,
+  Image,
+  ActivityIndicator,
+  StyleSheet,
+} from 'react-native';
 import { ProgressBar } from 'react-native-paper';
-import { StyledText } from '@/components/StyledText';
-import { AvatarGroup } from '@/components/AvatarGroup'; // supondo que já tenha
 import { useTheme } from '@/hooks/useTheme';
-import { Poll, PollOption, User } from '@/types';
+import { AvatarGroup } from './AvatarGroup';
+import { User } from '@/types';
+import { StyledText } from '../StyledText';
+
+interface PollOption {
+  option: string;
+  userVotes: number[];
+}
+
+interface Poll {
+  id: string;
+  question: string;
+  options: PollOption[];
+  totalVotes: number;
+  expiration: string;
+  avatarsByOption: Record<string, User[]>;
+}
 
 interface PollCardProps {
   poll: Poll;
-  onVote: (optionId: number) => void;
-  userVotedOptionId?: number;
-  isVotingOpen: boolean;
+  currentUserId: number;
+  onVote: (option: string) => void;
 }
 
-export const PollCard: React.FC<PollCardProps> = ({
-  poll,
-  onVote,
-  userVotedOptionId,
-  isVotingOpen,
-}) => {
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [showVoters, setShowVoters] = useState<PollOption | null>(null);
+export const PollCard: React.FC<PollCardProps> = ({ poll, currentUserId, onVote }) => {
   const theme = useTheme();
+  const [showVoters, setShowVoters] = useState<PollOption | null>(null);
+  const [voterUsers, setVoterUsers] = useState<User[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
-  const totalVotes = poll.options.reduce((sum, option) => sum + option.votes.length, 0);
+  const hasVoted = poll.options.some((opt) => opt.userVotes.includes(currentUserId));
+  const isVotingOpen = new Date(poll.expiration).getTime() > Date.now();
 
-  const handleVote = (optionId: number) => {
-    if (isVotingOpen && !userVotedOptionId) {
-      setSelectedOption(optionId);
-      onVote(optionId);
+  const handleVote = (option: string) => {
+    if (!hasVoted && isVotingOpen) {
+      onVote(option);
     }
   };
 
+  useEffect(() => {
+    if (showVoters) {
+      setLoadingUsers(true);
+      setVoterUsers(poll.avatarsByOption[showVoters.option] || []);
+      setLoadingUsers(false);
+    }
+  }, [showVoters, poll.avatarsByOption]);
+
   return (
-    <View style={{ backgroundColor: theme.white, borderRadius: 12, padding: 16, marginBottom: 16 }}>
-      <StyledText style={{ fontSize: 16, fontWeight: 'bold' }}>{poll.question}</StyledText>
-      
-      {poll.options.map((option) => {
-        const voteCount = option.votes.length;
-        const percentage = totalVotes ? (voteCount / totalVotes) : 0;
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.white,
+          shadowColor: theme.black,
+          borderColor: theme.grayLight,
+        },
+      ]}
+    >
+      <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.black }}>{poll.question}</Text>
+
+      {poll.options.map((opt, index) => {
+        const percentage = poll.totalVotes ? opt.userVotes.length / poll.totalVotes : 0;
+        const avatars = poll.avatarsByOption[opt.option] || [];
 
         return (
-          <TouchableOpacity
-            key={option.id}
-            onPress={() => handleVote(option.id)}
-            disabled={!isVotingOpen || !!userVotedOptionId}
-            style={{ marginVertical: 8 }}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              {option.image && (
-                <Image source={{ uri: option.image }} style={{ width: 32, height: 32, borderRadius: 16, marginRight: 8 }} />
-              )}
-              <StyledText>{option.label}</StyledText>
-              <StyledText style={{ marginLeft: 'auto' }}>{(percentage * 100).toFixed(0)}%</StyledText>
-            </View>
-            <ProgressBar progress={percentage} color={theme.primary} style={{ height: 6, borderRadius: 8, marginTop: 4 }} />
-            <TouchableOpacity onPress={() => setShowVoters(option)}>
-              <AvatarGroup users={option.votes.map((vote) => vote.user)} />
+          <View key={opt.option}>
+            <TouchableOpacity
+              onPress={() => handleVote(opt.option)}
+              disabled={hasVoted || !isVotingOpen}
+              style={{ marginVertical: 10 }}
+            >
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={{ color: theme.black }}>{opt.option}</Text>
+                <Text>{(percentage * 100).toFixed(0)}%</Text>
+              </View>
+              <ProgressBar
+                progress={percentage}
+                color={theme.greenLight}
+                style={{ height: 24, borderRadius: 8, marginTop: 4 }}
+              />
             </TouchableOpacity>
-          </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowVoters(opt)} style={{ width: '50%' }}>
+              <AvatarGroup users={avatars} />
+            </TouchableOpacity>
+          </View>
         );
       })}
 
-      <StyledText style={{ fontSize: 12, marginTop: 8 }}>
-        Total de votos: {totalVotes} {isVotingOpen ? '🟢 Votação aberta!' : '⚪ Votação encerrada'}
-      </StyledText>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text style={{ fontSize: 12, marginTop: 8, fontWeight: 'bold' }}>Total de votos: {poll.totalVotes}</Text>
+        <View style={{ flexDirection: 'row', gap: 4 }}>
+          <View
+            style={[
+              styles.circle,
+              { backgroundColor: isVotingOpen ? theme.greenLight : theme.red },
+            ]}
+          />
+          <Text style={{ fontSize: 12 }}>{isVotingOpen ? 'Votação aberta!' : 'Votação encerrada!'}</Text>
+        </View>
+      </View>
 
       <Modal visible={!!showVoters} transparent animationType="slide">
         <View style={{ flex: 1, justifyContent: 'center', backgroundColor: '#000000aa' }}>
           <View style={{ backgroundColor: theme.white, margin: 20, padding: 16, borderRadius: 12 }}>
-            <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Quem votou em: {showVoters?.label}</Text>
-            <FlatList
-              data={showVoters?.votes}
-              keyExtractor={(item) => String(item.user.id)}
-              renderItem={({ item }) => (
-                <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8 }}>
-                  <Image source={{ uri: item.user.avatar }} style={{ width: 32, height: 32, borderRadius: 16, marginRight: 8 }} />
-                  <Text>{item.user.name}</Text>
-                </View>
-              )}
-            />
+            <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Votos em: {showVoters?.option}</Text>
+            {loadingUsers ? (
+              <ActivityIndicator size="large" color={theme.greenLight} style={{ marginVertical: 20 }} />
+            ) : (
+              <FlatList
+                data={voterUsers}
+                keyExtractor={(item) => String(item.id)}
+                renderItem={({ item }) => (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8 }}>
+                    <Image
+                      source={{
+                        uri:
+                          item.profilePhoto ||
+                          `https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/avatars/default-avatar.png`,
+                      }}
+                      style={{ width: 32, height: 32, borderRadius: 16, marginRight: 8 }}
+                    />
+                    <Text>{item.name || `Usuário #${item.id}`}</Text>
+                  </View>
+                )}
+              />
+            )}
             <TouchableOpacity onPress={() => setShowVoters(null)} style={{ marginTop: 16 }}>
-              <Text style={{ color: theme.primary }}>Fechar</Text>
+              <Text style={{ color: theme.greenLight }}>Fechar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -90,3 +147,25 @@ export const PollCard: React.FC<PollCardProps> = ({
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 16,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    marginHorizontal: 16,
+  },
+  circle: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+});
