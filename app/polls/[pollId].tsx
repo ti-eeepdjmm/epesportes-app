@@ -1,45 +1,56 @@
 import React, { useEffect, useState } from 'react';
 import {
     View,
-    Text,
-    ActivityIndicator,
     StyleSheet,
     ScrollView,
-    TouchableOpacity
+    TouchableOpacity,
+    Text
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import api from '@/utils/api';
-import { formatTimestamp } from '@/utils/date';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
 import { AppLoader } from '@/components/AppLoader';
+import { PollCard } from '@/components/polls/PollCard';
+import { useAuth } from '@/contexts/AuthContext';
+import { User } from '@/types';
 
-interface PollDetail {
-    id: string;
-    question: string;
-    options: { option: string; votes: number }[];
-    expiration: string;
-    totalVotes: number;
+interface PollOption {
+    option: string;
+    userVotes: number[];
 }
 
-const handleBack = () => {
-    router.back();
-};
-
+interface Poll {
+    id: string;
+    question: string;
+    options: PollOption[];
+    totalVotes: number;
+    expiration: string;
+    avatarsByOption: Record<string, User[]>;
+}
 
 export default function PollScreen() {
     const { pollId } = useLocalSearchParams<{ pollId: string }>();
-    const [poll, setPoll] = useState<PollDetail | null>(null);
+    const [poll, setPoll] = useState<Poll | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const theme = useTheme();
+    const { user } = useAuth();
 
     useEffect(() => {
         if (!pollId) return;
         (async () => {
             try {
-                const res = await api.get<PollDetail>(`/polls/${pollId}`);
-                setPoll(res.data);
+                const res = await api.get<Omit<Poll, 'avatarsByOption'>>(`/polls/${pollId}`);
+                const pollData = res.data;
+                const avatarsByOption: Record<string, User[]> = {};
+                for (const opt of pollData.options) {
+                    const users = await Promise.all(
+                        opt.userVotes.map((id) => api.get(`/users/${id}`).then(res => res.data))
+                    );
+                    avatarsByOption[opt.option] = users;
+                }
+                setPoll({ ...pollData, avatarsByOption });
             } catch {
                 setError('Erro ao carregar enquete.');
             } finally {
@@ -48,6 +59,10 @@ export default function PollScreen() {
         })();
     }, [pollId]);
 
+    const handleBack = () => {
+        router.back();
+    };
+
     if (loading) {
         return (
             <View style={styles(theme).center}>
@@ -55,7 +70,8 @@ export default function PollScreen() {
             </View>
         );
     }
-    if (error || !poll) {
+
+    if (error || !poll || !user) {
         return (
             <View style={styles(theme).center}>
                 <Text style={styles(theme).error}>{error || 'Enquete não encontrada.'}</Text>
@@ -71,28 +87,64 @@ export default function PollScreen() {
                 </TouchableOpacity>
                 <Text style={[styles(theme).title, { color: theme.black }]}>Enquete</Text>
             </View>
-            <Text style={styles(theme).title}>{poll.question}</Text>
-            {poll.options.map((opt, idx) => (
-                <View key={`${opt.option}-${idx}`} style={styles(theme).option}>
-                    <Text style={styles(theme).optionText}>{opt.option}</Text>
-                    <Text style={styles(theme).votes}>{opt.votes} votos</Text>
-                </View>
-            ))}
-            <Text style={styles(theme).total}>Total de votos: {poll.totalVotes}</Text>
-            <Text style={styles(theme).expiration}>Encerra em: {formatTimestamp(poll.expiration, { includeTime: true, hideSeconds: true })}</Text>
+            <PollCard
+                poll={poll}
+                currentUserId={user.id}
+                shadowOn={false}
+                onVote={async (option) => {
+                    // Atualização otimista
+                    setPoll(prevPoll => {
+                        if (!prevPoll) return prevPoll;
+
+                        const updatedOptions = prevPoll.options.map(opt => {
+                            let userVotes = [...opt.userVotes];
+                            if (opt.option === option) {
+                                if (!userVotes.includes(user.id)) userVotes.push(user.id);
+                            } else {
+                                userVotes = userVotes.filter(id => id !== user.id);
+                            }
+                            return { ...opt, userVotes };
+                        });
+
+                        const avatarsByOption = { ...prevPoll.avatarsByOption };
+                        Object.keys(avatarsByOption).forEach(key => {
+                            avatarsByOption[key] = avatarsByOption[key].filter(u => u.id !== user.id);
+                            if (key === option) avatarsByOption[key].push(user);
+                        });
+
+                        const totalVotes = updatedOptions.reduce((sum, opt) => sum + opt.userVotes.length, 0);
+
+                        return {
+                            ...prevPoll,
+                            options: updatedOptions,
+                            avatarsByOption,
+                            totalVotes,
+                        };
+                    });
+
+                    try {
+                        await api.post(`/polls/${poll.id}/vote`, {
+                            userId: user.id,
+                            option,
+                        });
+                    } catch (error) {
+                        console.warn('Erro ao votar. Pode implementar rollback aqui se desejar.');
+                    }
+                }}
+            />
         </ScrollView>
     );
 }
 
 const styles = (theme: any) => StyleSheet.create({
-    container: { flexGrow: 1, padding: 16, backgroundColor: '#fff' },
+    container: { 
+        flexGrow: 1, 
+        paddingVertical: 16, 
+        backgroundColor: theme.white,
+        paddingHorizontal:8
+    },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     title: { fontSize: 20, fontWeight: 'bold', marginBottom: 8 },
-    expiration: { fontSize: 14, color: '#555', marginBottom: 16 },
-    option: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
-    optionText: { fontSize: 16 },
-    votes: { fontSize: 16, fontWeight: '600' },
-    total: { marginTop: 16, fontSize: 14, color: '#333', fontWeight: '500' },
     error: { color: 'red', fontSize: 16 },
     topBar: {
         flexDirection: 'row',

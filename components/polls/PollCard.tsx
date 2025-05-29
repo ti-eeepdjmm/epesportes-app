@@ -35,9 +35,10 @@ interface PollCardProps {
   poll: Poll;
   currentUserId: number;
   onVote: (option: string) => void;
+  shadowOn?: boolean;
 }
 
-export const PollCard: React.FC<PollCardProps> = ({ poll, currentUserId, onVote }) => {
+export const PollCard: React.FC<PollCardProps> = ({ poll, currentUserId, onVote, shadowOn=true }) => {
   const theme = useTheme();
   const [showVoters, setShowVoters] = useState<PollOption | null>(null);
   const [voterUsers, setVoterUsers] = useState<User[]>([]);
@@ -68,6 +69,7 @@ export const PollCard: React.FC<PollCardProps> = ({ poll, currentUserId, onVote 
     <View
       style={[
         styles.container,
+        shadowOn? styles.boxShadow : {},
         {
           backgroundColor: theme.white,
           shadowColor: theme.black,
@@ -175,9 +177,17 @@ export const PollCard: React.FC<PollCardProps> = ({ poll, currentUserId, onVote 
 const styles = StyleSheet.create({
   container: {
     borderRadius: 12,
-    borderWidth: 1,
     padding: 16,
     marginBottom: 16,
+    width: '100%'
+  },
+  circle: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  boxShadow:{
+    borderWidth: 1,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -185,11 +195,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    marginHorizontal: 16,
-  },
-  circle: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-  },
+  }
 });

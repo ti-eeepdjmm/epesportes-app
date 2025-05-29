@@ -64,7 +64,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 12,
     marginVertical: 8,
-    marginHorizontal: 16,
     // iOS
      shadowOffset: {
       width: 0,

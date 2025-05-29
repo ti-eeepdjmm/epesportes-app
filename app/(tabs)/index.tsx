@@ -115,7 +115,6 @@ export default function Home() {
   }
 
   return (
-    <>
       <ScrollView
         style={styles(theme).container}
         contentContainerStyle={styles(theme).contentContainer}
@@ -205,21 +204,19 @@ export default function Home() {
           />
         ))}
       </ScrollView>
-    </>
   );
 }
 
 const styles = (theme: any) =>
   StyleSheet.create({
     container: {
-      padding: 8,
       backgroundColor: theme.white,
     },
     contentContainer: {
       flexGrow: 1,
       justifyContent: 'flex-start',
-      alignItems: 'stretch',
       gap: 4,
+      padding: 16,
     },
     title: {
       fontSize: 18,
@@ -231,7 +228,6 @@ const styles = (theme: any) =>
       justifyContent: 'space-between',
       alignItems: 'center',
       marginTop: 16,
-      paddingHorizontal: 16,
     },
     subtitle: {
       fontSize: 16,
@@ -246,7 +242,6 @@ const styles = (theme: any) =>
       fontSize: 14,
       fontWeight: '500',
       color: theme.black,
-      marginLeft: 16,
       marginTop: 8,
     },
     fullScreenLoader: {
