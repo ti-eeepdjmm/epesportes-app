@@ -33,12 +33,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     margin:'auto',
-    minWidth:156,
+    minWidth:256,
     minHeight:32,
   },
   text: {
     fontSize: 16,
     fontWeight: '600',
     fontFamily: 'Poppins_400Regular',
+    width: '100%',
+    textAlign: 'center',
+
   },
 });

@@ -29,7 +29,6 @@ export const NotificationItem: FC<Props> = ({ notification, onPress }) => {
 
   // Função para navegar
   const handlePress = () => {
-    console.log('link', notification.link);
     const path = notification.link.startsWith('/')
       ? notification.link
       : `/${notification.link}`;
