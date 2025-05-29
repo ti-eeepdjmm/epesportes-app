@@ -53,7 +53,7 @@ export default function Home() {
         setPrefLoading(true);
         const res = await api.get<UserPreferences>(`/user-preferences/user/${user?.id}`);
         setTheme(res.data.darkMode ? 'dark' : 'light');
-      } catch {} finally {
+      } catch { } finally {
         setPrefLoading(false);
       }
     }
@@ -159,24 +159,48 @@ export default function Home() {
             poll={poll}
             currentUserId={user.id}
             onVote={async (option) => {
-              await api.post(`/polls/${poll.id}/vote`, {
-                userId: user.id,
-                option,
-              });
-              // Recarrega a lista após o voto
-              const updatedPolls = await api.get<Omit<Poll, 'avatarsByOption'>[]>('/polls');
-              const newPolls: Poll[] = [];
-              for (const updated of updatedPolls.data) {
-                const avatarsByOption: Record<string, User[]> = {};
-                for (const opt of updated.options) {
-                  const users = await Promise.all(
-                    opt.userVotes.map((id) => api.get(`/users/${id}`).then(res => res.data))
-                  );
-                  avatarsByOption[opt.option] = users;
-                }
-                newPolls.push({ ...updated, avatarsByOption });
+              // Atualização otimista
+              setPolls(prevPolls =>
+                prevPolls.map(p => {
+                  if (p.id !== poll.id) return p;
+
+                  const updatedOptions = p.options.map(opt => {
+                    let userVotes = [...opt.userVotes];
+                    if (opt.option === option) {
+                      if (!userVotes.includes(user.id)) userVotes.push(user.id);
+                    } else {
+                      userVotes = userVotes.filter(id => id !== user.id); // Remove voto anterior
+                    }
+                    return { ...opt, userVotes };
+                  });
+
+                  const avatarsByOption = { ...p.avatarsByOption };
+                  Object.keys(avatarsByOption).forEach(key => {
+                    avatarsByOption[key] = avatarsByOption[key].filter(u => u.id !== user.id);
+                    if (key === option) avatarsByOption[key].push(user);
+                  });
+
+                  const totalVotes = updatedOptions.reduce((sum, opt) => sum + opt.userVotes.length, 0);
+
+                  return {
+                    ...p,
+                    options: updatedOptions,
+                    avatarsByOption,
+                    totalVotes,
+                  };
+                })
+              );
+
+              // Requisição real
+              try {
+                await api.post(`/polls/${poll.id}/vote`, {
+                  userId: user.id,
+                  option,
+                });
+              } catch (error) {
+                console.warn('Erro ao votar. Pode implementar rollback aqui se desejar.');
+                // opcional: revert state or show alert
               }
-              setPolls(newPolls);
             }}
           />
         ))}
