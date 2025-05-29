@@ -13,21 +13,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { AppLoader } from '@/components/AppLoader';
 import { PollCard } from '@/components/polls/PollCard';
 import { useAuth } from '@/contexts/AuthContext';
-import { User } from '@/types';
-
-interface PollOption {
-    option: string;
-    userVotes: number[];
-}
-
-interface Poll {
-    id: string;
-    question: string;
-    options: PollOption[];
-    totalVotes: number;
-    expiration: string;
-    avatarsByOption: Record<string, User[]>;
-}
+import { Poll, User } from '@/types';
 
 export default function PollScreen() {
     const { pollId } = useLocalSearchParams<{ pollId: string }>();
@@ -48,7 +34,7 @@ export default function PollScreen() {
                     const users = await Promise.all(
                         opt.userVotes.map((id) => api.get(`/users/${id}`).then(res => res.data))
                     );
-                    avatarsByOption[opt.option] = users;
+                    avatarsByOption[opt.value] = users;
                 }
                 setPoll({ ...pollData, avatarsByOption });
             } catch {
@@ -98,7 +84,7 @@ export default function PollScreen() {
 
                         const updatedOptions = prevPoll.options.map(opt => {
                             let userVotes = [...opt.userVotes];
-                            if (opt.option === option) {
+                            if (opt.value === option) {
                                 if (!userVotes.includes(user.id)) userVotes.push(user.id);
                             } else {
                                 userVotes = userVotes.filter(id => id !== user.id);
