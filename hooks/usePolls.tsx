@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/utils/api';
 import { Alert } from 'react-native';
-import { User } from '@/types';
+import { Team, User } from '@/types';
 
 interface EnrichedPollOption {
   type: 'text' | 'user' | 'team';
@@ -24,7 +24,7 @@ export const usePolls = (userId: number | null) => {
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const enrichOptions = async (options: any[]): Promise<EnrichedPollOption[]> => {
+  const enrichOptions = async (options: EnrichedPollOption[]): Promise<EnrichedPollOption[]> => {
     const enriched = await Promise.all(
       options.map(async (opt) => {
         let label = opt.value;
@@ -42,8 +42,8 @@ export const usePolls = (userId: number | null) => {
 
         if (opt.type === 'team') {
           try {
-            const { data } = await api.get(`/teams/${opt.value}`);
-            label = data.nome;
+            const { data } = await api.get<Team>(`/teams/${opt.value}`);
+            label = data.name;
             image = data.logo;
           } catch {
             label = `Time #${opt.value}`;
@@ -54,6 +54,7 @@ export const usePolls = (userId: number | null) => {
           ...opt,
           label,
           image,
+          
         };
       })
     );
@@ -98,11 +99,11 @@ export const usePolls = (userId: number | null) => {
     }
   };
 
-  const voteOnPoll = async (pollId: string, option: string) => {
+  const voteOnPoll = async (pollId: string, optionValue: string) => {
     try {
       await api.post(`/polls/${pollId}/vote`, {
         userId,
-        option,
+        optionValue,
       });
       await fetchPolls(); // Atualiza enquetes após voto
     } catch (error: any) {

@@ -14,6 +14,7 @@ import { ProgressBar } from 'react-native-paper';
 import { useTheme } from '@/hooks/useTheme';
 import { AvatarGroup } from './AvatarGroup';
 import { Poll, PollOption, User } from '@/types';
+import { SvgCssUri } from 'react-native-svg/css';
 
 interface PollCardProps {
   poll: Poll;
@@ -81,8 +82,8 @@ export const PollCard: React.FC<PollCardProps> = ({
         const progressColor = isVotingOpen
           ? theme.greenLight
           : isWinner
-          ? theme.greenLight
-          : theme.gray;
+            ? theme.greenLight
+            : theme.gray;
 
         return (
           <View key={opt.value}>
@@ -94,12 +95,28 @@ export const PollCard: React.FC<PollCardProps> = ({
               <View
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
               >
-                {opt.image && (
+                {opt.image && opt.type === 'team' ? (
+                  <View
+                  style={
+                      {
+                        borderWidth:2,
+                        borderColor: theme.gray,
+                        borderRadius: 32,
+                        padding:2
+                      }
+                    }>
+                    <SvgCssUri
+                      uri={opt.image}
+                      width={40}
+                      height={40}
+                    />
+                  </View>
+                ) : opt.image ? (
                   <Image
                     source={{ uri: opt.image }}
-                    style={{ width: 24, height: 24, borderRadius: 12 }}
+                    style={{ width: 40, height: 40, borderRadius: 24 }}
                   />
-                )}
+                ) : null}
                 <Text style={{ color: theme.black, flex: 1 }}>{opt.label}</Text>
                 <Text>{(percentage * 100).toFixed(0)}%</Text>
               </View>

@@ -1,6 +1,7 @@
 import { User } from "./user";
 
 export interface PollOption {
+  type: 'text' | 'user' | 'team';
   value: string;
   label: string;
   image?: string;
