@@ -47,3 +47,14 @@ export interface LineupByTeam {
   starters: PlayerDetail[];
   reserves: PlayerDetail[];
 }
+
+export interface TeamStanding {
+  team: TeamInfo;
+  points: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goalsScored: number;
+  goalsConceded: number;
+  goalDifference: number;
+}

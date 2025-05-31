@@ -18,6 +18,7 @@ import api from '@/utils/api';
 import { MatchCardSummary } from '@/components/matches/MatchCardSummary';
 import { PollCard } from '@/components/polls/PollCard';
 import { usePolls } from '@/hooks/usePolls';
+import { TeamStandingsPreview } from '@/components/standings/TeamStandingsPreview';
 
 export default function Home() {
   const theme = useTheme();
@@ -107,6 +108,9 @@ export default function Home() {
           />
         </>
       )}
+
+      <StyledText style={styles(theme).smallSectionTitle}>Classificação</StyledText>
+      <TeamStandingsPreview />
 
       {polls.length > 0 && (
         <StyledText style={styles(theme).smallSectionTitle}>Enquetes</StyledText>
