@@ -99,20 +99,52 @@ export const usePolls = (userId: number | null) => {
     }
   };
 
-  const voteOnPoll = async (pollId: string, optionValue: string) => {
-    try {
-      await api.post(`/polls/${pollId}/vote`, {
-        userId,
-        optionValue,
+  // Dentro do hook usePolls
+const voteOnPoll = async (pollId: string, optionValue: string, currentUser: User) => {
+  // Atualização otimista
+  setPolls(prevPolls =>
+    prevPolls.map(poll => {
+      if (poll.id !== pollId) return poll;
+
+      const updatedOptions = poll.options.map(opt => {
+        let newVotes = [...opt.userVotes];
+        if (opt.value === optionValue) {
+          if (!newVotes.includes(currentUser.id)) newVotes.push(currentUser.id);
+        } else {
+          newVotes = newVotes.filter(id => id !== currentUser.id);
+        }
+        return { ...opt, userVotes: newVotes };
       });
-      await fetchPolls(); // Atualiza enquetes após voto
-    } catch (error: any) {
-      Alert.alert(
-        'Erro ao votar',
-        error.response?.data?.message || 'Tente novamente mais tarde.'
-      );
-    }
-  };
+
+      const avatarsByOption = { ...poll.avatarsByOption };
+      Object.keys(avatarsByOption).forEach(key => {
+        avatarsByOption[key] = avatarsByOption[key].filter(u => u.id !== currentUser.id);
+        if (key === optionValue) avatarsByOption[key].push(currentUser);
+      });
+
+      const totalVotes = updatedOptions.reduce((sum, opt) => sum + opt.userVotes.length, 0);
+
+      return {
+        ...poll,
+        options: updatedOptions,
+        avatarsByOption,
+        totalVotes,
+      };
+    })
+  );
+
+  // Requisição real
+  try {
+    await api.post(`/polls/${pollId}/vote`, {
+      userId: currentUser.id,
+      optionValue,
+    });
+  } catch (error) {
+    // Aqui você pode opcionalmente fazer rollback ou mostrar alerta
+    console.warn('Erro ao votar. Pode implementar rollback se desejar.');
+  }
+};
+
 
   useEffect(() => {
     if (!userId) return;

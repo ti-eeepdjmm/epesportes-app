@@ -117,7 +117,7 @@ export default function Home() {
           key={poll.id}
           poll={poll}
           currentUserId={user.id}
-          onVote={(option) => voteOnPoll(poll.id, option)}
+          onVote={(option) => voteOnPoll(poll.id, option, user)}
         />
       ))}
     </ScrollView>

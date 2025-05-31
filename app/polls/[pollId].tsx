@@ -55,7 +55,7 @@ export default function PollScreen() {
                       key={poll.id}
                       poll={poll}
                       currentUserId={user.id}
-                      onVote={(option) => voteOnPoll(poll.id, option)}
+                      onVote={(option) => voteOnPoll(poll.id, option, user)}
                       shadowOn={false}
              />
          ))}
