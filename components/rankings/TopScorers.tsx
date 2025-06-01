@@ -13,8 +13,13 @@ import { SvgCssUri } from 'react-native-svg/css';
 import { PlayerRankingItem, PlayerResolved } from '@/types/player';
 
 
+interface Props {
+  full?: boolean;
+}
 
-export const TopScorersPreview = () => {
+export const TopScorers: React.FC<Props> = ({
+  full = false,
+}) => {
   const theme = useTheme();
   const [players, setPlayers] = useState<PlayerResolved[]>([]);
 
@@ -25,7 +30,7 @@ export const TopScorersPreview = () => {
   const loadRanking = async () => {
     try {
       const { data } = await api.get<PlayerRankingItem[]>('/rankings/goals');
-      const topPlayers = data.slice(0, 3);
+      const topPlayers = full? data : data.slice(0, 3);
 
       const resolvedPlayers = await Promise.all(
         topPlayers.map(async (item) => {
@@ -79,10 +84,13 @@ export const TopScorersPreview = () => {
         </View>
       ))}
 
+     {!full && (
       <TouchableOpacity onPress={() => router.push('/(tabs)/games')}>
         <Text style={[styles.buttonText, { color: theme.greenLight }]}>Ver lista completa</Text>
         <Text style={[styles.arrowDown, { color: theme.greenLight }]}>▼</Text>
       </TouchableOpacity>
+     )
+     }
     </View>
   );
 };

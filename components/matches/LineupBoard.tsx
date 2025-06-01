@@ -24,7 +24,7 @@ export const LineupBoard: FC<Props> = ({ data }) => {
   if (!data || data.length === 0 || data.every(t => t.starters.length === 0)) {
     return (
       <View style={{ padding: 16 }}>
-        <Text style={{ textAlign: 'center', fontSize: 16, color: theme.black }}>
+        <Text style={{ textAlign: 'center', fontSize: 14, color: theme.black }}>
           Nenhuma escalação registrada para esta partida.
         </Text>
       </View>

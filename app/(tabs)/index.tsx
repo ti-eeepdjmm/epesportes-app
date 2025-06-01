@@ -18,8 +18,8 @@ import api from '@/utils/api';
 import { MatchCardSummary } from '@/components/matches/MatchCardSummary';
 import { PollCard } from '@/components/polls/PollCard';
 import { usePolls } from '@/hooks/usePolls';
-import { TeamStandingsPreview } from '@/components/standings/TeamStandingsPreview';
-import { TopScorersPreview } from '@/components/rankings/TopScorerPreview';
+import { TeamStandings } from '@/components/standings/TeamStandings';
+import { TopScorers } from '@/components/rankings/TopScorers';
 
 export default function Home() {
   const theme = useTheme();
@@ -111,9 +111,10 @@ export default function Home() {
       )}
 
       <StyledText style={styles(theme).smallSectionTitle}>Classificação</StyledText>
-      <TeamStandingsPreview />
+      <TeamStandings />
+      
       <StyledText style={styles(theme).smallSectionTitle}>Artilharia</StyledText>
-      <TopScorersPreview />
+      <TopScorers />
 
       {polls.length > 0 && (
         <StyledText style={styles(theme).smallSectionTitle}>Enquetes</StyledText>

@@ -11,9 +11,13 @@ import { router } from 'expo-router';
 import { SvgCssUri } from 'react-native-svg/css';
 import { TeamStanding } from '@/types';
 
+interface Props {
+    full?: boolean;
+}
 
-
-export const TeamStandingsPreview = () => {
+export const TeamStandings: React.FC<Props> = ({
+    full = false,
+}) => {
     const theme = useTheme();
     const [standings, setStandings] = useState<TeamStanding[]>([]);
 
@@ -24,7 +28,8 @@ export const TeamStandingsPreview = () => {
     const fetchStandings = async () => {
         try {
             const { data } = await api.get('/team-standings/ordered');
-            setStandings(data.slice(0, 4));
+            const finalData = full? data : data.slice(0, 4)
+            setStandings(finalData);
         } catch (error) {
             console.error('Erro ao buscar classificação:', error);
         }
@@ -79,11 +84,12 @@ export const TeamStandingsPreview = () => {
                     </View>
                 ))}
             </View>
-
-            <TouchableOpacity onPress={() => router.push('/(tabs)/games')} style={styles.button}>
-                <Text style={[styles.buttonText, { color: theme.greenLight }]}>Ver tabela completa</Text>
-                <Text style={[styles.arrowDown, { color: theme.greenLight }]}>▼</Text>
-            </TouchableOpacity>
+            {!full && (  
+                <TouchableOpacity onPress={() => router.push('/(tabs)/games')} style={styles.button}>
+                    <Text style={[styles.buttonText, { color: theme.greenLight }]}>Ver tabela completa</Text>
+                    <Text style={[styles.arrowDown, { color: theme.greenLight }]}>▼</Text>
+                </TouchableOpacity>
+            )}
         </View>
     );
 };

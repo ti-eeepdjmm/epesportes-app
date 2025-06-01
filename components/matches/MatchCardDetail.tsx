@@ -44,6 +44,7 @@ export const MatchCardDetail: FC<Props> = ({ match }) => {
   const [loadingStats, setLoadingStats] = useState(true);
   const [lineupData, setLineupData] = useState<LineupByTeam[] | null>(null);
   const [loadingLineup, setLoadingLineup] = useState(true);
+  const [noStatsFound, setNoStatsFound] = useState(false);
 
 
   const statusLabel =
@@ -59,11 +60,15 @@ export const MatchCardDetail: FC<Props> = ({ match }) => {
     (async () => {
       try {
         const res = await api.get<Stat[]>(`/match-stats/match/${match.id}`);
+        if (res.data.length === 0) {
+        if (isMounted) setNoStatsFound(true);
+        return;
+      }
         const left = res.data.find(s => s.team.id === match.team1.id)!;
         const right = res.data.find(s => s.team.id === match.team2.id)!;
         if (isMounted) setStats({ left, right });
       } catch (err) {
-        console.error('Erro ao carregar estatísticas', err);
+        // console.error('Erro ao carregar estatísticas', err);
       } finally {
         if (isMounted) setLoadingStats(false);
       }
@@ -169,9 +174,13 @@ export const MatchCardDetail: FC<Props> = ({ match }) => {
 
       {/* Conteúdo */}
       {activeTab === 'statistics' && (
-        loadingStats || !stats ? (
+        loadingStats ? (
           <ActivityIndicator color={theme.greenLight} style={{ marginTop: 32 }} />
-        ) : (
+        ) : noStatsFound || !stats ? (
+          <Text style={[styles(theme).placeholderText, { color: theme.black, textAlign: 'center', marginTop: 32 }]}>
+            Nenhuma estatística cadastrada para esta partida.
+          </Text>
+        ): (
           <View style={styles(theme).statsContainer}>
             {/* Posse de bola */}
             <View style={styles(theme).possessionTitleRow}>
