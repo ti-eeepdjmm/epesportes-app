@@ -118,7 +118,7 @@ export const PollCard: React.FC<PollCardProps> = ({
                   />
                 ) : null}
                 <Text style={{ color: theme.black, flex: 1 }}>{opt.label}</Text>
-                <Text>{(percentage * 100).toFixed(0)}%</Text>
+                <Text style={{ color: theme.black}}>{(percentage * 100).toFixed(0)}%</Text>
               </View>
               <ProgressBar
                 progress={percentage}
@@ -164,7 +164,7 @@ export const PollCard: React.FC<PollCardProps> = ({
         }}
       >
         <Text
-          style={{ fontSize: 12, marginTop: 8, fontWeight: 'bold' }}
+          style={{ color: theme.black, fontSize: 12, marginTop: 8, fontWeight: 'bold' }}
         >
           Total de votos: {poll.totalVotes}
         </Text>
@@ -172,16 +172,16 @@ export const PollCard: React.FC<PollCardProps> = ({
           <View
             style={[
               styles.circle,
-              { backgroundColor: isVotingOpen ? theme.greenLight : theme.red },
+              { backgroundColor: isVotingOpen ? theme.success : theme.error },
             ]}
           />
-          <Text style={{ fontSize: 12 }}>
+          <Text style={{ color: theme.black, fontSize: 12 }}>
             {isVotingOpen ? 'Votação aberta!' : 'Votação encerrada!'}
           </Text>
         </View>
       </View>
 
-      <Modal visible={!!showVoters} transparent animationType="slide">
+      <Modal visible={!!showVoters && voterUsers.length > 0} transparent animationType="slide">
         <View
           style={{
             flex: 1,
@@ -198,7 +198,7 @@ export const PollCard: React.FC<PollCardProps> = ({
               maxHeight: '80%',
             }}
           >
-            <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 8 }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 8, color: theme.black }}>
               Votos em: {showVoters?.label}
             </Text>
 
@@ -232,7 +232,7 @@ export const PollCard: React.FC<PollCardProps> = ({
                         marginRight: 8,
                       }}
                     />
-                    <Text>{item.name || `Usuário #${item.id}`}</Text>
+                    <Text style={{color: theme.black }}>{item.name || `Usuário #${item.id}`}</Text>
                   </View>
                 ))}
               </ScrollView>
