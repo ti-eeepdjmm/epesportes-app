@@ -1,14 +1,18 @@
 import { User } from "./user";
 
 export interface PollOption {
-  id: number;
+  type: 'text' | 'user' | 'team';
+  value: string;
   label: string;
   image?: string;
-  votes: { user: User }[]; // ou apenas `User[]` se preferir
+  userVotes: number[];
 }
 
 export interface Poll {
-  id: number;
+  id: string;
   question: string;
   options: PollOption[];
+  totalVotes: number;
+  expiration: string;
+  avatarsByOption: Record<string, User[]>;
 }

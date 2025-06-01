@@ -10,6 +10,7 @@ export const colors = {
       white: '#FFFFFF',
       red: '#FF5226',
       error: '#FF5226',
+      success: '#0E7E3F',
       grayLight:'#D9D9D9',
     },
     dark: {
@@ -23,6 +24,7 @@ export const colors = {
       white: '#2C2C2D',
       red: '#FF5226',
       error: '#FF5226',
+      success: '#0E7E3F',
       grayLight:'#D9D9D9',
     },
   };
