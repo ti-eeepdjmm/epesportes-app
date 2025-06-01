@@ -12,19 +12,26 @@ export function HomeHeader() {
   const router = useRouter();
   const { user } = useAuth();
   const { state, dispatch } = useNotifications();
-  const [ notifications, setNotifications ] = useState(0)
+  const [notifications, setNotifications] = useState(0)
 
   // Calcula quantas notificações não lidas existem
   useEffect(() => {
-     setNotifications(state.items.filter(n => !n.read).length);
-  },[state]);
+    setNotifications(state.items.filter(n => !n.read).length);
+  }, [state]);
 
   return (
     <View style={styles(theme).container}>
-      <Image
-        source={{ uri: user?.profilePhoto || 'https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/avatars/default-avatar.png' }}
-        style={styles(theme).avatar}
-      />
+      <TouchableOpacity
+        onPress={() => {
+          // Navega para profile
+          router.push('/(tabs)/profile');
+        }}
+      >
+        <Image
+          source={{ uri: user?.profilePhoto || 'https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/avatars/default-avatar.png' }}
+          style={styles(theme).avatar}
+        />
+      </TouchableOpacity>
 
       <View style={styles(theme).searchContainer}>
         <TextInput
