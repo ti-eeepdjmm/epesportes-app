@@ -4,10 +4,12 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar';
 import { TabIcon } from '@/components/icons/TabIcon';
 import { useTheme } from '@/hooks/useTheme';
+import { useSmartBackHandler } from '@/hooks/useSmartBackHandler';
 
 export default function TabLayout(): JSX.Element {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  useSmartBackHandler();
 
   
 
