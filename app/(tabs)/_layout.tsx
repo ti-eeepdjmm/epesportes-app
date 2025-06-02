@@ -11,8 +11,6 @@ export default function TabLayout(): JSX.Element {
   const theme = useTheme();
   useSmartBackHandler();
 
-  
-
   const screenOptions = {
     headerShown: false,
     tabBarActiveTintColor: "#fff",
@@ -28,6 +26,7 @@ export default function TabLayout(): JSX.Element {
       fontSize: 12,
       fontFamily: 'Poppins_400Regular',
     },
+     unmountOnBlur: false, // <--- impede o recarregamento ao voltar
   };
 
   return (

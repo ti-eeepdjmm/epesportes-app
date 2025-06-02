@@ -2,14 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { RelativePathString, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import api from '@/utils/api';
 import { useTheme } from '@/hooks/useTheme';
 import { AppLoader } from '@/components/AppLoader';
 import { Ionicons } from '@expo/vector-icons';
 import { MatchCardDetail } from '@/components/matches/MatchCardDetail';
 import { MatchSummary } from '@/types';
-import { useSmartBackHandler } from '@/hooks/useSmartBackHandler';
 import { useCustomBack } from '@/hooks/useCustomBack';
 
 interface MatchDetailAPI {

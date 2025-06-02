@@ -16,6 +16,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Poll, User, Team } from '@/types';
 import { usePolls } from '@/hooks/usePolls';
 
+
+
 export default function PollScreen() {
     const { pollId } = useLocalSearchParams<{ pollId: string }>();
     const theme = useTheme();

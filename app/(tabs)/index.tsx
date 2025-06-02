@@ -21,6 +21,7 @@ import { usePolls } from '@/hooks/usePolls';
 import { TeamStandings } from '@/components/standings/TeamStandings';
 import { TopScorers } from '@/components/rankings/TopScorers';
 import { PlayerRankingItem, PlayerResolved } from '@/types/player';
+import { TeamStanding } from '@/types';
 
 export default function Home() {
   const theme = useTheme();
@@ -33,6 +34,8 @@ export default function Home() {
   const [lastMatch, setLastMatch] = useState<MatchSummary | null>(null);
   const [nextMatch, setNextMatch] = useState<MatchSummary | null>(null);
   const [scorers, setScorers] = useState<PlayerResolved[]>([]);
+  const [standings, setStandings] = useState<TeamStanding[]>([]);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const { polls, loading: pollLoading, voteOnPoll, refetch: refetchPolls } = usePolls(user?.id || null);
 
@@ -71,7 +74,7 @@ export default function Home() {
   const loadScorers = async () => {
     try {
       const { data } = await api.get<PlayerRankingItem[]>('/rankings/goals');
-      const topPlayers = data.slice(0, 3); // Pode ajustar para mostrar mais
+      const topPlayers = data.slice(0, 3);
 
       const resolvedPlayers = await Promise.all(
         topPlayers.map(async (item) => {
@@ -97,30 +100,45 @@ export default function Home() {
     }
   };
 
+  const loadStandings = async () => {
+    try {
+      const { data } = await api.get<TeamStanding[]>('/team-standings/ordered');
+      setStandings(data);
+    } catch (error) {
+      console.error('Erro ao buscar classificação:', error);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     await Promise.all([
       loadMatches(),
       loadScorers(),
+      loadStandings(),
       refetchPolls?.(),
     ]);
     setRefreshing(false);
   };
 
   useEffect(() => {
-    if (user?.id) {
-      loadMatches();
-      loadScorers();
-    }
-  }, [user]);
-
-  if (!user || prefLoading || pollLoading) {
-    return (
-      <View style={styles(theme).fullScreenLoader}>
-        <AppLoader visible />
-      </View>
-    );
+  if (user?.id) {
+    Promise.all([
+      // loadPreferences(),
+      loadMatches(),
+      loadScorers(),
+      loadStandings(),
+      refetchPolls?.(),
+    ]).finally(() => setInitialLoading(false));
   }
+}, [user]);
+
+  if (!user || initialLoading) {
+  return (
+    <View style={styles(theme).fullScreenLoader}>
+      <AppLoader visible />
+    </View>
+  );
+}
 
   return (
     <ScrollView
@@ -165,7 +183,7 @@ export default function Home() {
       )}
 
       <StyledText style={styles(theme).smallSectionTitle}>Classificação</StyledText>
-      <TeamStandings />
+      <TeamStandings data={standings} />
 
       <StyledText style={styles(theme).smallSectionTitle}>Artilharia</StyledText>
       <TopScorers data={scorers} />

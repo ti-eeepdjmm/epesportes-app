@@ -6,6 +6,7 @@ import {
   Text,
   TouchableOpacity,
   Animated,
+  RefreshControl,
 } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { AppLoader } from '@/components/AppLoader';
@@ -13,23 +14,21 @@ import { MatchCardSummary } from '@/components/matches/MatchCardSummary';
 import { TeamStandings } from '@/components/standings/TeamStandings';
 import { TopScorers } from '@/components/rankings/TopScorers';
 import api from '@/utils/api';
-import { MatchSummary } from '@/types';
+import { MatchSummary, TeamStanding } from '@/types';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { RefreshControl } from 'react-native';
 import { PlayerRankingItem, PlayerResolved } from '@/types/player';
-
 
 export default function GamesScreen() {
   const theme = useTheme();
   const [matches, setMatches] = useState<MatchSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [currentRound, setCurrentRound] = useState(0);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [animationDirection, setAnimationDirection] = useState<'left' | 'right'>('left');
   const [refreshing, setRefreshing] = useState(false);
   const [scorers, setScorers] = useState<PlayerResolved[]>([]);
-
+    const [standings, setStandings] = useState<TeamStanding[]>([]);
 
   const translateX = useRef(new Animated.Value(0)).current;
 
@@ -46,18 +45,16 @@ export default function GamesScreen() {
   const loadMatches = async () => {
     try {
       const res = await api.get<MatchSummary[]>('/matches');
-      setMatches(res.data.reverse()); // mantém a ordem antiga
+      setMatches(res.data.reverse());
     } catch (e) {
       console.error('Erro ao atualizar partidas:', e);
-    } finally {
-      setRefreshing(false);
     }
-  } 
+  };
 
   const loadScorers = async () => {
     try {
       const { data } = await api.get<PlayerRankingItem[]>('/rankings/goals');
-      const topPlayers = data.slice(0, 3); // Pode ajustar para mostrar mais
+      const topPlayers = data.slice(0, 3);
 
       const resolvedPlayers = await Promise.all(
         topPlayers.map(async (item) => {
@@ -83,25 +80,33 @@ export default function GamesScreen() {
     }
   };
 
+   const loadStandings = async () => {
+    try {
+      const { data } = await api.get<TeamStanding[]>('/team-standings/ordered');
+      setStandings(data);
+    } catch (error) {
+      console.error('Erro ao buscar classificação:', error);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     await Promise.all([
-      loadMatches(),
+      loadMatches(), 
       loadScorers(),
+      loadStandings(),
     ]);
     setRefreshing(false);
   };
 
-
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get<MatchSummary[]>('/matches');
-        setMatches(res.data.reverse()); // Mostra a última partida primeiro
-      } catch (e) {
-        console.error('Erro ao buscar partidas:', e);
+        await loadMatches();
+        await loadScorers();
+        await loadStandings();
       } finally {
-        setLoading(false);
+        setInitialLoading(false);
       }
     })();
   }, []);
@@ -110,7 +115,7 @@ export default function GamesScreen() {
     animateSlide(animationDirection);
   }, [currentRound, currentMatchIndex]);
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <View style={styles(theme).loader}>
         <AppLoader visible />
@@ -161,8 +166,8 @@ export default function GamesScreen() {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          colors={[theme.greenLight]} // Android
-          tintColor={theme.greenLight} // iOS
+          colors={[theme.greenLight]}
+          tintColor={theme.greenLight}
         />
       }
     >
@@ -203,9 +208,7 @@ export default function GamesScreen() {
               name="arrow-forward-circle-outline"
               size={28}
               color={
-                currentRound === groupedMatches.length - 1
-                  ? theme.gray
-                  : theme.greenLight
+                currentRound === groupedMatches.length - 1 ? theme.gray : theme.greenLight
               }
             />
           </TouchableOpacity>
@@ -253,7 +256,7 @@ export default function GamesScreen() {
                   size={32}
                   color={
                     currentRound === groupedMatches.length - 1 &&
-                      currentMatchIndex === currentRoundMatches.length - 1
+                    currentMatchIndex === currentRoundMatches.length - 1
                       ? theme.gray
                       : theme.greenLight
                   }
@@ -261,12 +264,11 @@ export default function GamesScreen() {
               </TouchableOpacity>
             </View>
           </View>
-
         )}
       </View>
 
       <Text style={styles(theme).sectionTitle}>Classificação</Text>
-      <TeamStandings full={true} />
+      <TeamStandings data={standings} full={true} />
 
       <Text style={styles(theme).sectionTitle}>Artilharia</Text>
       <TopScorers full={true} data={scorers} />
