@@ -22,6 +22,7 @@ import { TeamStandings } from '@/components/standings/TeamStandings';
 import { TopScorers } from '@/components/rankings/TopScorers';
 import { PlayerRankingItem, PlayerResolved } from '@/types/player';
 import { TeamStanding } from '@/types';
+import { useHomeStore } from '@/stores/useHomeStore';
 
 export default function Home() {
   const theme = useTheme();
@@ -31,13 +32,23 @@ export default function Home() {
 
   const [prefLoading, setPrefLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [lastMatch, setLastMatch] = useState<MatchSummary | null>(null);
-  const [nextMatch, setNextMatch] = useState<MatchSummary | null>(null);
-  const [scorers, setScorers] = useState<PlayerResolved[]>([]);
-  const [standings, setStandings] = useState<TeamStanding[]>([]);
-  const [initialLoading, setInitialLoading] = useState(true);
 
-  const { polls, loading: pollLoading, voteOnPoll, refetch: refetchPolls } = usePolls(user?.id || null);
+  const {
+    lastMatch,
+    nextMatch,
+    scorers,
+    standings,
+    polls,
+    initialLoading,
+    setLastMatch,
+    setNextMatch,
+    setScorers,
+    setStandings,
+    setPolls,
+    setInitialLoading,
+  } = useHomeStore();
+
+  const { voteOnPoll, refetch: refetchPolls } = usePolls(user?.id || null);
 
   useEffect(() => {
     async function loadPreferences() {
@@ -115,30 +126,29 @@ export default function Home() {
       loadMatches(),
       loadScorers(),
       loadStandings(),
-      refetchPolls?.(),
+      refetchPolls?.().then((data) => setPolls(data ?? [])),
     ]);
     setRefreshing(false);
   };
 
   useEffect(() => {
-  if (user?.id) {
-    Promise.all([
-      // loadPreferences(),
-      loadMatches(),
-      loadScorers(),
-      loadStandings(),
-      refetchPolls?.(),
-    ]).finally(() => setInitialLoading(false));
-  }
-}, [user]);
+    if (user?.id && initialLoading) {
+      Promise.all([
+        loadMatches(),
+        loadScorers(),
+        loadStandings(),
+        refetchPolls?.().then((data) => setPolls(data ?? [])),
+      ]).finally(() => setInitialLoading(false));
+    }
+  }, [user]);
 
   if (!user || initialLoading) {
-  return (
-    <View style={styles(theme).fullScreenLoader}>
-      <AppLoader visible />
-    </View>
-  );
-}
+    return (
+      <View style={styles(theme).fullScreenLoader}>
+        <AppLoader visible />
+      </View>
+    );
+  }
 
   return (
     <ScrollView

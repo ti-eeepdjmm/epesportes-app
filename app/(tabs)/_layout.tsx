@@ -64,6 +64,7 @@ export default function TabLayout(): JSX.Element {
           name="profile"
           options={{
             title: 'Perfil',
+            unmountOnBlur: false, // impede que a tela seja desmontada ao sair dela
             tabBarIcon: ({ focused }: any) => (
               <TabIcon name="profile" focused={focused} />
             ),

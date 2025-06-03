@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   ScrollView,
   View,
@@ -13,28 +13,32 @@ import { AppLoader } from '@/components/AppLoader';
 import { MatchCardSummary } from '@/components/matches/MatchCardSummary';
 import { TeamStandings } from '@/components/standings/TeamStandings';
 import { TopScorers } from '@/components/rankings/TopScorers';
-import api from '@/utils/api';
-import { MatchSummary, TeamStanding } from '@/types';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { PlayerRankingItem, PlayerResolved } from '@/types/player';
+import { useGamesStore } from '@/stores/useGamesStore';
 
 export default function GamesScreen() {
   const theme = useTheme();
-  const [matches, setMatches] = useState<MatchSummary[]>([]);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [currentRound, setCurrentRound] = useState(0);
-  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
-  const [animationDirection, setAnimationDirection] = useState<'left' | 'right'>('left');
-  const [refreshing, setRefreshing] = useState(false);
-  const [scorers, setScorers] = useState<PlayerResolved[]>([]);
-    const [standings, setStandings] = useState<TeamStanding[]>([]);
+  const {
+    matches,
+    scorers,
+    standings,
+    initialLoading,
+    refreshing,
+    currentRound,
+    currentMatchIndex,
+    loadAll,
+    onRefresh,
+    handlePrev,
+    handleNext,
+    setRoundIndex,
+    setMatchIndex,
+  } = useGamesStore();
 
   const translateX = useRef(new Animated.Value(0)).current;
 
   const animateSlide = (direction: 'left' | 'right') => {
     translateX.setValue(direction === 'left' ? 300 : -300);
-
     Animated.timing(translateX, {
       toValue: 0,
       duration: 300,
@@ -42,77 +46,12 @@ export default function GamesScreen() {
     }).start();
   };
 
-  const loadMatches = async () => {
-    try {
-      const res = await api.get<MatchSummary[]>('/matches');
-      setMatches(res.data.reverse());
-    } catch (e) {
-      console.error('Erro ao atualizar partidas:', e);
-    }
-  };
-
-  const loadScorers = async () => {
-    try {
-      const { data } = await api.get<PlayerRankingItem[]>('/rankings/goals');
-      const topPlayers = data.slice(0, 3);
-
-      const resolvedPlayers = await Promise.all(
-        topPlayers.map(async (item) => {
-          const res = await api.get(`/players/${item.player.id}`);
-          const player = res.data;
-
-          return {
-            id: player.id,
-            name: player.user.name,
-            photo: player.user.profilePhoto || `https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/avatars/default-avatar.png`,
-            team: {
-              name: player.team.name,
-              logo: player.team.logo,
-            },
-            goals: item.goals,
-          };
-        })
-      );
-
-      setScorers(resolvedPlayers);
-    } catch (error) {
-      console.error('Erro ao buscar artilharia:', error);
-    }
-  };
-
-   const loadStandings = async () => {
-    try {
-      const { data } = await api.get<TeamStanding[]>('/team-standings/ordered');
-      setStandings(data);
-    } catch (error) {
-      console.error('Erro ao buscar classificação:', error);
-    }
-  };
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await Promise.all([
-      loadMatches(), 
-      loadScorers(),
-      loadStandings(),
-    ]);
-    setRefreshing(false);
-  };
-
   useEffect(() => {
-    (async () => {
-      try {
-        await loadMatches();
-        await loadScorers();
-        await loadStandings();
-      } finally {
-        setInitialLoading(false);
-      }
-    })();
+    loadAll();
   }, []);
 
   useEffect(() => {
-    animateSlide(animationDirection);
+    animateSlide('left');
   }, [currentRound, currentMatchIndex]);
 
   if (initialLoading) {
@@ -123,7 +62,7 @@ export default function GamesScreen() {
     );
   }
 
-  const groupedMatches = matches.reduce((acc: MatchSummary[][], match, index) => {
+  const groupedMatches = matches.reduce((acc: any[][], match, index) => {
     const groupIndex = Math.floor(index / 5);
     if (!acc[groupIndex]) acc[groupIndex] = [];
     acc[groupIndex].push(match);
@@ -132,30 +71,6 @@ export default function GamesScreen() {
 
   const currentRoundMatches = groupedMatches[currentRound] || [];
   const currentMatch = currentRoundMatches[currentMatchIndex];
-
-  const handlePrev = () => {
-    if (currentMatchIndex > 0) {
-      setAnimationDirection('right');
-      setCurrentMatchIndex(currentMatchIndex - 1);
-    } else if (currentRound > 0) {
-      const prevRound = currentRound - 1;
-      setAnimationDirection('right');
-      setCurrentRound(prevRound);
-      setCurrentMatchIndex(groupedMatches[prevRound].length - 1);
-    }
-  };
-
-  const handleNext = () => {
-    if (currentMatchIndex < currentRoundMatches.length - 1) {
-      setAnimationDirection('left');
-      setCurrentMatchIndex(currentMatchIndex + 1);
-    } else if (currentRound < groupedMatches.length - 1) {
-      const nextRound = currentRound + 1;
-      setAnimationDirection('left');
-      setCurrentRound(nextRound);
-      setCurrentMatchIndex(0);
-    }
-  };
 
   return (
     <ScrollView
@@ -176,13 +91,7 @@ export default function GamesScreen() {
       <View style={styles(theme).roundContainer}>
         <View style={styles(theme).roundNavigation}>
           <TouchableOpacity
-            onPress={() => {
-              if (currentRound > 0) {
-                setAnimationDirection('right');
-                setCurrentRound(currentRound - 1);
-                setCurrentMatchIndex(0);
-              }
-            }}
+            onPress={() => setRoundIndex(currentRound - 1)}
             disabled={currentRound === 0}
           >
             <Ionicons
@@ -195,13 +104,7 @@ export default function GamesScreen() {
           <Text style={styles(theme).roundLabel}>Rodada {currentRound + 1}</Text>
 
           <TouchableOpacity
-            onPress={() => {
-              if (currentRound < groupedMatches.length - 1) {
-                setAnimationDirection('left');
-                setCurrentRound(currentRound + 1);
-                setCurrentMatchIndex(0);
-              }
-            }}
+            onPress={() => setRoundIndex(currentRound + 1)}
             disabled={currentRound === groupedMatches.length - 1}
           >
             <Ionicons
@@ -276,52 +179,51 @@ export default function GamesScreen() {
   );
 }
 
-const styles = (theme: any) =>
-  StyleSheet.create({
-    container: {
-      backgroundColor: theme.white,
-    },
-    contentContainer: {
-      flexGrow: 1,
-      padding: 16,
-    },
-    loader: {
-      ...StyleSheet.absoluteFillObject,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: theme.white,
-    },
-    sectionTitle: {
-      fontSize: 18,
-      fontWeight: '700',
-      color: theme.black,
-      marginBottom: 8,
-    },
-    roundContainer: {
-      marginBottom: 24,
-    },
-    roundNavigation: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 12,
-      paddingHorizontal: 16,
-    },
-    roundLabel: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: theme.greenLight,
-    },
-    navigationButtons: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginTop: 12,
-      paddingHorizontal: 16,
-    },
-    matchNumber: {
-      fontSize: 14,
-      fontWeight: '500',
-      color: theme.black,
-    },
-  });
+const styles = (theme: any) => StyleSheet.create({
+  container: {
+    backgroundColor: theme.white,
+  },
+  contentContainer: {
+    flexGrow: 1,
+    padding: 16,
+  },
+  loader: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.white,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.black,
+    marginBottom: 8,
+  },
+  roundContainer: {
+    marginBottom: 24,
+  },
+  roundNavigation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    paddingHorizontal: 16,
+  },
+  roundLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.greenLight,
+  },
+  navigationButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    paddingHorizontal: 16,
+  },
+  matchNumber: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.black,
+  },
+});
