@@ -21,7 +21,7 @@ interface ProfileStore {
   hasLoadedOnce: boolean;
 
   loadPreferences: (userId: number) => Promise<void>;
-  handleEditPhoto: (user: User) => Promise<void>;
+  handleEditPhoto: (user: User, updateUser: (user: User) => void) => Promise<void>;
   handleSaveProfile: (user: User, data: UserProfile) => Promise<void>;
   toggleDarkMode: (val: boolean, prefId: number, setTheme: (theme: ThemeType) => void) => void;
   toggleNotifications: (val: boolean, prefId: number) => void;
@@ -89,7 +89,7 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
     });
   },
 
-  handleEditPhoto: async (user) => {
+  handleEditPhoto: async (user, updateUser) => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -110,7 +110,7 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
 
       const asset = result.assets[0];
       const uri = asset.uri;
-      const ext = uri.split('.').pop() || 'jpg';
+      const ext = uri.split('.').pop() || 'jpeg';
       const timestamp = Date.now();
       const filePath = `${user.id}/${timestamp}.${ext}`;
       const contentType = `image/${ext}`;
@@ -133,7 +133,8 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
       const publicUrl = urlData.publicUrl;
 
-      await api.patch(`/users/${user.id}`, { profilePhoto: publicUrl });
+      const { data:updatedUser }  = await api.patch<User>(`/users/${user.id}`, { profilePhoto: publicUrl });
+      updateUser(updatedUser);
     } catch (err) {
       console.error('Erro ao editar foto:', err);
       Alert.alert('Erro', 'Não foi possível atualizar a foto.');

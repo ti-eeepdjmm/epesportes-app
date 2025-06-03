@@ -84,7 +84,7 @@ export default function ProfileScreen() {
           <>
             <ProfileInfoCard
               user={user}
-              onEditPhoto={() => handleEditPhoto(user)}
+              onEditPhoto={() => handleEditPhoto(user, updateUser)}
               loading={uploadingPhotoLoading}
             />
             <EditProfileForm
