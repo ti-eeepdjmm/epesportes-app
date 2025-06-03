@@ -155,5 +155,6 @@ const voteOnPoll = async (pollId: string, optionValue: string, currentUser: User
     polls,
     loading,
     voteOnPoll,
+    refetch: fetchPolls
   };
 };

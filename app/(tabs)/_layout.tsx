@@ -4,12 +4,12 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar';
 import { TabIcon } from '@/components/icons/TabIcon';
 import { useTheme } from '@/hooks/useTheme';
+import { useSmartBackHandler } from '@/hooks/useSmartBackHandler';
 
 export default function TabLayout(): JSX.Element {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-
-  
+  useSmartBackHandler();
 
   const screenOptions = {
     headerShown: false,
@@ -26,6 +26,7 @@ export default function TabLayout(): JSX.Element {
       fontSize: 12,
       fontFamily: 'Poppins_400Regular',
     },
+     unmountOnBlur: false, // <--- impede o recarregamento ao voltar
   };
 
   return (
@@ -63,6 +64,7 @@ export default function TabLayout(): JSX.Element {
           name="profile"
           options={{
             title: 'Perfil',
+            unmountOnBlur: false, // impede que a tela seja desmontada ao sair dela
             tabBarIcon: ({ focused }: any) => (
               <TabIcon name="profile" focused={focused} />
             ),

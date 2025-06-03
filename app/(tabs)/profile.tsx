@@ -1,5 +1,5 @@
 // src/screens/ProfileScreen.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { ScrollView, Alert, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
@@ -17,181 +17,85 @@ import BellIcon from '@/components/icons/BellPausedIcon';
 import MoonIcon from '@/components/icons/MoonIcon';
 import ProfileInfoCard from '@/components/profile/ProfileInfoCard';
 import EditProfileForm from '@/components/profile/EditProfileForm';
-import api from '@/utils/api';
-import { clearTokens, getAccessToken } from '@/utils/storage';
-import { Player, UserPreferences, UserProfile } from '@/types';
-
-import * as ImagePicker from 'expo-image-picker';
-import { supabase } from '@/utils/supabase';
-import * as FileSystem from 'expo-file-system';
+import { useProfileStore } from '@/stores/useProfileStore';
 
 export default function ProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { signOut, user, updateUser } = useAuth();
   const { markAllRead } = useNotifications();
-  const { setTheme, theme: currentThemeKey } = useThemeContext();
+  const { setTheme, theme: currentTheme } = useThemeContext();
+  const { hasLoadedOnce } = useProfileStore();
 
-  const [darkModeEnabled, setDarkModeEnabled] = useState(currentThemeKey === 'dark');
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [prefLoading, setPrefLoading] = useState(false);
-  const [savingProfileLoading, setSavingProfileLoading] = useState(false);
-  const [uploadingPhotoLoading, setUploadingPhotoLoading] = useState(false);
-  const [logoutLoading, setLogoutLoading] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [preferences, setPreferences] = useState<UserPreferences>()
+  const {
+    preferences,
+    editing,
+    loading,
+    savingProfileLoading,
+    uploadingPhotoLoading,
+    logoutLoading,
+    darkModeEnabled,
+    notificationsEnabled,
+    loadPreferences,
+    handleEditPhoto,
+    handleSaveProfile,
+    toggleDarkMode,
+    toggleNotifications,
+    setEditing,
+    setLogoutLoading,
+    reset,
+  } = useProfileStore();
+
 
   useEffect(() => {
-    async function loadPreferences() {
-      try {
-        setPrefLoading(true);
-        const res = await api.get<UserPreferences>(`/user-preferences/user/${user?.id}`);
-        setPreferences(res.data)
-        setDarkModeEnabled(res.data.darkMode);
-        setNotificationsEnabled(res.data.notificationsEnabled);
-        setTheme(res.data.darkMode ? 'dark' : 'light');
-      } catch (err) {
-        const res = await api.post<UserPreferences>('/user-preferences/', {
-          user: user?.id,
-          darkMode: false,
-          notificationsEnabled: false
-        });
-        setPreferences(res.data)
-      } finally {
-        setPrefLoading(false);
-      }
+    if (user?.id && !hasLoadedOnce) {
+      loadPreferences(user.id);
     }
-    if (user?.id) loadPreferences();
-  }, [user?.id]);
+  }, [user?.id, hasLoadedOnce]);
 
   const handleLogout = async () => {
     try {
       setLogoutLoading(true);
       await signOut();
-      await clearTokens();
-      setDarkModeEnabled(false);
-      setNotificationsEnabled(false);
-      setTheme('light');
       markAllRead();
       router.replace('/(auth)/login');
-    } catch (err) {
+    } catch {
       Alert.alert('Erro', 'Não foi possível sair.');
     } finally {
       setLogoutLoading(false);
     }
   };
 
-  // Novo método para editar foto de perfil
-  const handleEditPhoto = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permissão negada',
-          'Precisamos de acesso às fotos para alterar sua foto de perfil.'
-        );
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 1,
-      });
-
-      if (result.canceled) return;
-
-      setUploadingPhotoLoading(true);
-
-      const asset = result.assets[0];
-      const fileUri = asset.uri;
-      const fileExt = fileUri.split('.').pop() || 'jpg';
-
-      const timestamp = Date.now();
-      const filePath = `${user?.id}/${timestamp}.${fileExt}`;
-      const contentType = `image/${fileExt}`;
-
-      const token = await getAccessToken();
-
-      await FileSystem.uploadAsync(
-        `https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/avatars/${filePath}?upsert=true`,
-        fileUri,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': `${contentType}`,
-          },
-          httpMethod: 'POST',
-          uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-        }
-      );
-
-      const { data: urlData } = supabase
-        .storage
-        .from('avatars')
-        .getPublicUrl(`${filePath}`);
-
-      const publicUrl = urlData.publicUrl;
-
-      const { data: updatedUser } = await api.patch(`/users/${user?.id}`, {
-        profilePhoto: publicUrl,
-      });
-
-      updateUser(updatedUser);
-    } catch (err) {
-      console.error('🛑 Erro inesperado:', err);
-      Alert.alert('Erro', 'Não foi possível atualizar a foto de perfil.');
-    } finally {
-      setUploadingPhotoLoading(false);
-    }
-  };
-
-
-  const handleSaveProfile = async (profile: UserProfile) => {
-    try {
-      setSavingProfileLoading(true);
-      const updatedUser = await api.patch(`/users/${user?.id}`, {
-        name: profile.name,
-        favoriteTeam: profile.favoriteTeam,
-        username: profile.username,
-      });
-
-      if (user?.isAthlete) {
-        const player = await api.get<Player>(`/players/user/${user?.id}`);
-        await api.patch(`/players/${player.data.id}`, {
-          team: profile.favoriteTeam,
-          game: profile.gameId,
-          position: profile.position || null,
-          jerseyNumber: profile.jerseyNumber || null,
-        });
-      }
-      updateUser(updatedUser.data);
-    } catch (err) {
-      Alert.alert('Erro', 'Não foi possível atualizar o perfil.');
-    } finally {
-      setSavingProfileLoading(false);
-      setEditing(false);
-    }
-  };
+  if (loading && !preferences) {
+    return (
+      <View style={styles(theme).loader}>
+        <AppLoader visible />
+      </View>
+    );
+  }
 
   return (
     <>
       <ScrollView style={{ backgroundColor: theme.white }} contentContainerStyle={{ paddingBottom: 40 }}>
         <StyledText style={[styles(theme).title, { fontSize: 24 }]}>Perfil</StyledText>
         <Separator />
-        {user ? (
+
+        {user && (
           <>
-            <ProfileInfoCard user={user} onEditPhoto={handleEditPhoto} loading={uploadingPhotoLoading} />
+            <ProfileInfoCard
+              user={user}
+              onEditPhoto={() => handleEditPhoto(user, updateUser)}
+              loading={uploadingPhotoLoading}
+            />
             <EditProfileForm
               user={user}
-              onSave={handleSaveProfile}
+              onSave={(data) => handleSaveProfile(user, data)}
               onCancel={() => setEditing(false)}
               isEditing={editing}
               setIsEditing={setEditing}
             />
           </>
-        ) : null}
+        )}
 
         <Separator />
 
@@ -200,12 +104,13 @@ export default function ProfileScreen() {
           label="Modo Escuro"
           value={darkModeEnabled}
           onChange={(val) => {
-            setDarkModeEnabled(val);
-            setTheme(val ? 'dark' : 'light');
-            api.patch(`/user-preferences/${preferences!.id}`, { darkMode: val });
+            if (preferences?.id) {
+              toggleDarkMode(val, preferences.id, setTheme);
+            }
           }}
           icon={<MoonIcon size={24} color={theme.black} />}
         />
+
         <Separator />
 
         <StyledText style={styles(theme).title}>Notificações</StyledText>
@@ -213,11 +118,13 @@ export default function ProfileScreen() {
           label="Pausar notificações"
           value={notificationsEnabled}
           onChange={(val) => {
-            setNotificationsEnabled(val);
-            api.patch(`/user-preferences/${preferences!.id}`, { notificationsEnabled: val });
+            if (preferences?.id) {
+              toggleNotifications(val, preferences.id);
+            }
           }}
           icon={<BellIcon size={24} color={theme.black} />}
         />
+
         <Separator />
 
         <StyledText style={styles(theme).title}>Segurança</StyledText>
@@ -237,7 +144,8 @@ export default function ProfileScreen() {
           showArrow={false}
         />
       </ScrollView>
-      {!editing && (savingProfileLoading || logoutLoading || prefLoading) && (
+
+      {!editing && (savingProfileLoading || logoutLoading) && (
         <View style={styles(theme).fullScreenLoader}>
           <AppLoader visible />
         </View>
@@ -248,27 +156,21 @@ export default function ProfileScreen() {
 
 const styles = (theme: any) =>
   StyleSheet.create({
-    container: {
-      flexGrow: 1,
-      backgroundColor: theme.white,
-      paddingTop: 24,
-      paddingBottom: 72,
-    },
     title: {
       fontSize: 18,
       fontFamily: 'Poppins_600SemiBold',
       color: theme.black,
       paddingHorizontal: 16,
     },
-    subtitle: {
-      fontSize: 16,
-      fontFamily: 'Poppins_600SemiBold',
-      color: theme.black,
-      paddingHorizontal: 16,
+    loader: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: theme.white,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     fullScreenLoader: {
       ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(255,255,255,0.7)', // ou transparente se preferir
+      backgroundColor: 'rgba(255,255,255,0.7)',
       justifyContent: 'center',
       alignItems: 'center',
       zIndex: 999,

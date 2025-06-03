@@ -9,6 +9,7 @@ import { AppLoader } from '@/components/AppLoader';
 import { Ionicons } from '@expo/vector-icons';
 import { MatchCardDetail } from '@/components/matches/MatchCardDetail';
 import { MatchSummary } from '@/types';
+import { useCustomBack } from '@/hooks/useCustomBack';
 
 interface MatchDetailAPI {
   id: number;
@@ -28,6 +29,7 @@ export default function MatchScreen() {
   const [match, setMatch] = useState<MatchDetailAPI | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  useCustomBack('/(tabs)/games');
 
   useEffect(() => {
     if (!matchId) return;
@@ -43,7 +45,7 @@ export default function MatchScreen() {
     })();
   }, [matchId]);
 
-  const handleBack = () => router.back();
+ const handleBack = () => {router.back();};
 
   if (loading) {
     return (
