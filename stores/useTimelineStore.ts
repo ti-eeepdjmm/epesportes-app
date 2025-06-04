@@ -4,43 +4,34 @@ import { TimelinePostType, User } from '@/types';
 
 interface TimelineState {
   posts: TimelinePostType[];
-  users: Record<number, User>; // key: userId
+  users: Record<number, User>;
   setPosts: (posts: TimelinePostType[]) => void;
   updatePost: (updated: TimelinePostType) => void;
   getUserById: (userId: number) => Promise<User | undefined>;
+  fetchPosts: () => Promise<void>; // 👈 nova função
 }
 
 export const useTimelineStore = create<TimelineState>((set, get) => ({
   posts: [],
   users: {},
 
-  setPosts: async (posts) => {
-    set({ posts });
-
-    // Buscar usuários únicos
-    const uniqueUserIds = Array.from(new Set(posts.map((p) => p.userId)));
-    const usersMap: Record<number, User> = {};
-
-    await Promise.all(
-      uniqueUserIds.map(async (id) => {
-        try {
-          const { data } = await api.get<User>(`/users/${id}`);
-          usersMap[id] = data;
-        } catch (err) {
-          console.warn(`Erro ao buscar user ${id}`, err);
-        }
-      }),
+  setPosts: (posts) => {
+    const sortedPosts = [...posts].sort(
+      (a, b) => new Date(b.postDate).getTime() - new Date(a.postDate).getTime(),
     );
-
-    set((state) => ({
-      users: { ...state.users, ...usersMap },
-    }));
+    set({ posts: sortedPosts });
   },
 
   updatePost: (updated) =>
-    set((state) => ({
-      posts: state.posts.map((p) => (p._id === updated._id ? updated : p)),
-    })),
+    set((state) => {
+      const updatedPosts = state.posts.map((p) =>
+        p._id === updated._id ? updated : p,
+      );
+      updatedPosts.sort(
+        (a, b) => new Date(b.postDate).getTime() - new Date(a.postDate).getTime(),
+      );
+      return { posts: updatedPosts };
+    }),
 
   getUserById: async (userId) => {
     const existing = get().users[userId];
@@ -55,6 +46,15 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
     } catch (err) {
       console.warn(`Erro ao buscar user ${userId}`, err);
       return undefined;
+    }
+  },
+
+  fetchPosts: async () => {
+    try {
+      const { data } = await api.get<TimelinePostType[]>('/timeline-posts');
+      await get().setPosts(data); // já busca os users internamente
+    } catch (err) {
+      console.error('Erro ao buscar posts', err);
     }
   },
 }));

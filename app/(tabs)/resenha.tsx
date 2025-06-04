@@ -1,24 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, RefreshControl } from 'react-native';
+import { View, ScrollView, RefreshControl } from 'react-native';
+import { useTheme } from '@/hooks/useTheme';
 import { ResenhaCard } from '@/components/resenha/ResenhaCard';
 import { useTimelineStore } from '@/stores/useTimelineStore';
-import { TimelinePostType } from '@/types';
-import api from '@/utils/api';
 import { useSocket } from '@/contexts/SocketContext';
+import { TimelinePostType } from '@/types';
 
 export default function ResenhaScreen() {
-  const { posts, setPosts, updatePost } = useTimelineStore();
-  const [refreshing, setRefreshing] = useState(false);
+  const theme = useTheme();
   const { socket } = useSocket();
-
-  const fetchPosts = async () => {
-    try {
-      const response = await api.get<TimelinePostType[]>('/timeline-posts');
-      setPosts(response.data);
-    } catch (err) {
-      console.error('Erro ao buscar timeline:', err);
-    }
-  };
+  const { posts, updatePost, fetchPosts } = useTimelineStore();
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchPosts();
@@ -31,11 +23,10 @@ export default function ResenhaScreen() {
       postId: string;
       updatedPost: TimelinePostType;
     }) => {
-      updatePost({ ...payload.updatedPost, _id: payload.postId });
+      updatePost(payload.updatedPost);
     };
 
     socket.on('timeline:update', handleTimelineUpdate);
-
     return () => {
       socket.off('timeline:update', handleTimelineUpdate);
     };
@@ -48,20 +39,20 @@ export default function ResenhaScreen() {
   };
 
   return (
-    <View style={{ flex: 1, paddingHorizontal: 16 }}>
-      <FlatList
-        data={posts}
-        keyExtractor={(item) => item._id}
-        renderItem={({ item }) => (
-          <ResenhaCard
-            post={item}
-            onReactPress={() => console.log('Reagir', item._id)}
-            onCommentPress={() => console.log('Comentar', item._id)}
-          />
-        )}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-      />
-    </View>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: theme.white }}
+      contentContainerStyle={{ padding: 16 }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          colors={[theme.greenLight]}
+        />
+      }
+    >
+      {posts.map((post) => (
+        <ResenhaCard key={post._id} post={post} />
+      ))}
+    </ScrollView>
   );
-}
+};

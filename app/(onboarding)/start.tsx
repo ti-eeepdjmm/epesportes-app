@@ -52,7 +52,11 @@ export default function OnboardStart() {
           <Text style={[globalStyles.paragraph, { color: theme.black }]}>
             Seu App de esportes da EEEP DJMM
           </Text>
-          <PrimaryButton title="Começar" onPress={() => router.push('/(onboarding)/first-step')} />
+          <PrimaryButton 
+            title="Começar" 
+            onPress={() => router.push('/(onboarding)/first-step')}
+            style={{ width: 256, marginTop: 12 }} 
+          />
         </Animated.View>
         <Logo styles={{position:'absolute', bottom: 24}} />
       </Animated.View>

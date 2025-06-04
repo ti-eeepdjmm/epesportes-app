@@ -42,7 +42,7 @@ export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPres
         />
         <View>
           <Text style={[styles.author, { color: theme.black }]}>{user?.name || 'Usuário'}</Text>
-          <Text style={[styles.time, { color: theme.greenLight }]}>{timeAgo}</Text>
+          <Text style={[styles.time, { color: theme.greenLight }]}>{timeAgo.charAt(0).toUpperCase()+ timeAgo.slice(1)}</Text>
         </View>
       </View>
 
