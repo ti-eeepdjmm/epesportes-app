@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/utils/supabase';
 import { Player, UserPreferences, UserProfile, User } from '@/types';
 import { ThemeType } from '@/contexts/ThemeContext';
+import { useAthleteStore } from './useAthleteStore';
 
 interface ProfileStore {
   preferences: UserPreferences | null;
@@ -22,7 +23,7 @@ interface ProfileStore {
 
   loadPreferences: (userId: number) => Promise<void>;
   handleEditPhoto: (user: User, updateUser: (user: User) => void) => Promise<void>;
-  handleSaveProfile: (user: User, data: UserProfile) => Promise<void>;
+  handleSaveProfile: (user: User, data: UserProfile, updateUser: (user: User) => void) => Promise<void>;
   toggleDarkMode: (val: boolean, prefId: number, setTheme: (theme: ThemeType) => void) => void;
   toggleNotifications: (val: boolean, prefId: number) => void;
   setEditing: (val: boolean) => void;
@@ -143,16 +144,16 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
     }
   },
 
-  handleSaveProfile: async (user, data) => {
+  handleSaveProfile: async (user, data, updateUser: (user: User) => void) => {
     try {
       set({ savingProfileLoading: true });
 
-      const updatedUser = await api.patch(`/users/${user.id}`, {
+      const { data:updatedUser } = await api.patch<User>(`/users/${user.id}`, {
         name: data.name,
         username: data.username,
         favoriteTeam: data.favoriteTeam,
       });
-
+      
       if (user.isAthlete) {
         const player = await api.get<Player>(`/players/user/${user.id}`);
         await api.patch(`/players/${player.data.id}`, {
@@ -161,9 +162,12 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
           position: data.position || null,
           jerseyNumber: data.jerseyNumber || null,
         });
+
+        const athleteStore = useAthleteStore.getState();
+        await athleteStore.loadData(user.id, user.isAthlete);
       }
 
-      // updateUser externo
+      updateUser(updatedUser);
     } catch (err) {
       console.error(err);
       Alert.alert('Erro', 'Não foi possível atualizar o perfil.');

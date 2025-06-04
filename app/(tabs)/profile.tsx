@@ -89,7 +89,7 @@ export default function ProfileScreen() {
             />
             <EditProfileForm
               user={user}
-              onSave={(data) => handleSaveProfile(user, data)}
+              onSave={(data) => handleSaveProfile(user, data, updateUser)}
               onCancel={() => setEditing(false)}
               isEditing={editing}
               setIsEditing={setEditing}
@@ -144,12 +144,12 @@ export default function ProfileScreen() {
           showArrow={false}
         />
       </ScrollView>
-
+{/* 
       {!editing && (savingProfileLoading || logoutLoading) && (
         <View style={styles(theme).fullScreenLoader}>
           <AppLoader visible />
         </View>
-      )}
+      )} */}
     </>
   );
 }
