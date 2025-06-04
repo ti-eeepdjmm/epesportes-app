@@ -1,48 +1,67 @@
-import { StyledText } from "@/components/StyledText"
-import { useAuth } from "@/contexts/AuthContext";
-import { useSocket } from "@/contexts/SocketContext";
-import { useTheme } from "@/hooks/useTheme";
-import { useEffect, useState } from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import React, { useEffect, useState } from 'react';
+import { View, FlatList, RefreshControl } from 'react-native';
+import { ResenhaCard } from '@/components/resenha/ResenhaCard';
+import { useTimelineStore } from '@/stores/useTimelineStore';
+import { TimelinePostType } from '@/types';
+import api from '@/utils/api';
+import { useSocket } from '@/contexts/SocketContext';
 
 export default function ResenhaScreen() {
-  const theme = useTheme();
+  const { posts, setPosts, updatePost } = useTimelineStore();
+  const [refreshing, setRefreshing] = useState(false);
   const { socket } = useSocket();
 
+  const fetchPosts = async () => {
+    try {
+      const response = await api.get<TimelinePostType[]>('/timeline-posts');
+      setPosts(response.data);
+    } catch (err) {
+      console.error('Erro ao buscar timeline:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleTimelineUpdate = (payload: {
+      postId: string;
+      updatedPost: TimelinePostType;
+    }) => {
+      updatePost({ ...payload.updatedPost, _id: payload.postId });
+    };
+
+    socket.on('timeline:update', handleTimelineUpdate);
+
+    return () => {
+      socket.off('timeline:update', handleTimelineUpdate);
+    };
+  }, [socket]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchPosts();
+    setRefreshing(false);
+  };
 
   return (
-    <ScrollView
-      style={styles(theme).container}
-      contentContainerStyle={styles(theme).contentContainer}
-      showsVerticalScrollIndicator={false}
-    >
-      <StyledText style={styles(theme).title}>
-        Resenha
-      </StyledText>
-    </ScrollView>
+    <View style={{ flex: 1, paddingHorizontal: 16 }}>
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => item._id}
+        renderItem={({ item }) => (
+          <ResenhaCard
+            post={item}
+            onReactPress={() => console.log('Reagir', item._id)}
+            onCommentPress={() => console.log('Comentar', item._id)}
+          />
+        )}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      />
+    </View>
   );
 }
-
-const styles = (theme: any) =>
-  StyleSheet.create({
-    container: {
-      padding: 16,
-      backgroundColor: theme.white,
-    },
-    contentContainer: {
-      flexGrow: 1,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    title: {
-      fontSize: 18,
-      fontFamily: 'Poppins_600SemiBold',
-      color: theme.black,
-    },
-    subtitle: {
-      fontSize: 18,
-      fontWeight: "600",
-      color: theme.black,
-    },
-  });
-
