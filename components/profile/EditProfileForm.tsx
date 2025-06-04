@@ -18,7 +18,8 @@ const positionsBySport: Record<string, { label: string; value: string }[]> = {
   futsal: [
     { label: 'Goleiro', value: 'goleiro' },
     { label: 'Fixo', value: 'fixo' },
-    { label: 'Ala', value: 'ala' },
+    { label: 'Ala Esquerda', value: 'alaEsquerda' },
+    { label: 'Ala Direita', value: 'alaDireita' },
     { label: 'Pivô', value: 'pivo' },
   ],
   vôlei: [
@@ -184,7 +185,7 @@ export default function EditProfileForm({
         });
       }
     }
-  }, [games, teams, player]);
+  }, [games, teams, player, user]);
 
   const isIndividual = individualGames.includes(selectedGameLabel);
   const positionOptions = positionsBySport[selectedGameLabel] || [];
