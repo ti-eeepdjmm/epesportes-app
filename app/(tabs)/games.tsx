@@ -16,6 +16,7 @@ import { TopScorers } from '@/components/rankings/TopScorers';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useGamesStore } from '@/stores/useGamesStore';
+import { HomeHeader } from '@/components/HomeHeader';
 
 export default function GamesScreen() {
   const theme = useTheme();
@@ -86,6 +87,7 @@ export default function GamesScreen() {
         />
       }
     >
+      <HomeHeader />
       <Text style={styles(theme).sectionTitle}>Partidas</Text>
 
       <View style={styles(theme).roundContainer}>

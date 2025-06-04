@@ -16,10 +16,14 @@ interface Props {
 }
 
 export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPress }) => {
-  const timeAgo = formatDistanceToNow(new Date(post.postDate), {
+  const timeAgoRaw = formatDistanceToNow(new Date(post.postDate), {
     addSuffix: true,
     locale: ptBR,
   });
+
+  const timeAgo = timeAgoRaw
+  .replace('há cerca de', 'há')
+  .replace('em cerca de', 'em');
 
   const theme = useTheme();
   const reactionTypes = Object.keys(post.reactions) as (keyof typeof post.reactions)[];
@@ -41,8 +45,11 @@ export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPres
           style={styles.avatar}
         />
         <View>
-          <Text style={[styles.author, { color: theme.black }]}>{user?.name || 'Usuário'}</Text>
-          <Text style={[styles.time, { color: theme.greenLight }]}>{timeAgo.charAt(0).toUpperCase()+ timeAgo.slice(1)}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Text style={[styles.author, { color: theme.black }]}>{user?.name || 'Usuário'}</Text>
+            <Text style={[styles.author, { color: theme.gray, fontSize:12 }]}>{`@${user?.username}` || ''}</Text>
+          </View>
+          <Text style={[styles.time, { color: theme.greenLight }]}>{timeAgo}</Text>
         </View>
       </View>
 
