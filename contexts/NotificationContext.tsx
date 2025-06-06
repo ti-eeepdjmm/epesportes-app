@@ -69,6 +69,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
 
     let isMounted = true;
+
     (async () => {
       try {
         const lastSeen = await AsyncStorage.getItem('lastSeenGlobalAt');
@@ -184,9 +185,10 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       console.log('[NotificationProvider] evento recebido:', event, payload);
     });
 
-    socket.on('Feed:new-post', (payload) => {
+    // Postagens na timeline
+    socket.on('feed:new-post', (payload) => {
       const notif: Notification = {
-        id: payload.postId ? `${payload.postId}-${payload.timestamp}` : Date.now().toString(),
+        id: payload.postId ? `post-${payload.postId}-${payload.timestamp}` : Date.now().toString(),
         type: 'post',
         message: payload.message || 'Novo post',
         link: payload.link || `/posts/${payload.postId}`,
@@ -198,6 +200,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       dispatch({ type: 'RECEIVE', notification: notif });
     });
 
+    // Atualizações de partidas
     socket.on('Match:update', (payload) => {
       const notif: Notification = {
         id: `match-${payload.matchId}-${payload.timestamp}`,
@@ -212,6 +215,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       dispatch({ type: 'RECEIVE', notification: notif });
     });
 
+    // Notificações globais (como enquetes)
     socket.on('global:notification', (payload) => {
       const globalType = payload.type as NotificationType;
       const notif: Notification = {
@@ -227,11 +231,27 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       dispatch({ type: 'RECEIVE', notification: notif });
     });
 
+    // Notificações por menção
+    socket.on('mention:notification', (payload) => {
+      const notif: Notification = {
+        id: `mention-${payload.userId}-${payload.timestamp}`,
+        type: 'mention',
+        message: payload.message || 'Você foi mencionado',
+        link: payload.link,
+        date: new Date().toISOString(),
+        read: false,
+        isGlobal: false,
+        payload,
+      };
+      dispatch({ type: 'RECEIVE', notification: notif });
+    });
+
     return () => {
       socket.offAny();
-      socket.off('Feed:new-post');
+      socket.off('feed:new-post');
       socket.off('Match:update');
       socket.off('global:notification');
+      socket.off('mention:notification');
     };
   }, [socket, user]);
 
