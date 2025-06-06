@@ -32,11 +32,15 @@ export default function TabLayout(): JSX.Element {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.white }}>
       <StatusBar style={'dark'} />
-      <Tabs screenOptions={screenOptions}>
+      <Tabs 
+        initialRouteName="index"
+        screenOptions={screenOptions}
+      >
         <Tabs.Screen
           name="index"
           options={{
             title: 'Início',
+            unmountOnBlur: false, // impede que a tela seja desmontada ao sair dela
             tabBarIcon: ({ focused }: any) => (
               <TabIcon name="home" focused={focused} />
             ),
@@ -46,6 +50,7 @@ export default function TabLayout(): JSX.Element {
           name="games"
           options={{
             title: 'Jogos',
+            unmountOnBlur: false, // impede que a tela seja desmontada ao sair dela
             tabBarIcon: ({ focused }: any) => (
               <TabIcon name="games" focused={focused} />
             ),
@@ -55,6 +60,7 @@ export default function TabLayout(): JSX.Element {
           name="resenha"
           options={{
             title: 'Resenha',
+            unmountOnBlur: false, // impede que a tela seja desmontada ao sair dela
             tabBarIcon: ({ focused }: any) => (
               <TabIcon name="resenha" focused={focused} />
             ),

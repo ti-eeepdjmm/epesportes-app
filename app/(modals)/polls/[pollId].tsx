@@ -7,7 +7,6 @@ import {
     Text,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import api from '@/utils/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
 import { AppLoader } from '@/components/AppLoader';

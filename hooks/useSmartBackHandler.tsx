@@ -1,39 +1,36 @@
-import { useEffect } from 'react';
-import { BackHandler, Alert } from 'react-native';
-import { useSegments } from 'expo-router';
+import { Alert, BackHandler } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { usePathname } from 'expo-router';
+import { useCallback } from 'react';
 
 export function useSmartBackHandler() {
-  const segments = useSegments();
+  const pathname = usePathname();
+  console.log('Current pathname:', pathname);
 
-  useEffect(() => {
-    const onBackPress = () => {
-      const currentPath = segments.join('/');
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        const isInHomeTab =
+          pathname === '/' || pathname === '/(tabs)';
 
-      const isModal = segments[0] === '(modals)';
-      const isInHomeTab =
-            currentPath === '(tabs)' ||
-            currentPath === '(tabs)/index' ||
-            segments[1]?.toLowerCase() === 'index'; // safe check
+        if (isInHomeTab) {
+          Alert.alert('Sair do App', 'Deseja sair?', [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Sair', onPress: () => BackHandler.exitApp() },
+          ]);
+          return true;
+        }else{
+          // Permite comportamento normal de voltar
+          return false;
+        }
+      };
 
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onBackPress
+      );
 
-      if (isModal) {
-        // Deixa o comportamento default (router.dismiss)
-        return false;
-      }
-
-      if (isInHomeTab) {
-        Alert.alert('Sair do App', 'Deseja sair?', [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Sair', onPress: () => BackHandler.exitApp() },
-        ]);
-        return true;
-      }
-
-      // Permite comportamento normal de voltar
-      return false;
-    };
-
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-    return () => backHandler.remove();
-  }, [segments]);
+      return () => subscription.remove();
+    }, [pathname])
+  );
 }

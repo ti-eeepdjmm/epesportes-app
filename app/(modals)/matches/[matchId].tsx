@@ -1,15 +1,15 @@
 // app/matches/[matchId].tsx
 
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, BackHandler } from 'react-native';
+import { RelativePathString, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import api from '@/utils/api';
 import { useTheme } from '@/hooks/useTheme';
 import { AppLoader } from '@/components/AppLoader';
 import { Ionicons } from '@expo/vector-icons';
 import { MatchCardDetail } from '@/components/matches/MatchCardDetail';
 import { MatchSummary } from '@/types';
-import { useCustomBack } from '@/hooks/useCustomBack';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 interface MatchDetailAPI {
   id: number;
@@ -29,7 +29,7 @@ export default function MatchScreen() {
   const [match, setMatch] = useState<MatchDetailAPI | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  useCustomBack('/(tabs)/games');
+  const { lastRoute, setLastRoute } = useNotifications();
 
   useEffect(() => {
     if (!matchId) return;
@@ -45,7 +45,35 @@ export default function MatchScreen() {
     })();
   }, [matchId]);
 
- const handleBack = () => {router.dismiss();};
+
+
+  // ⬇️ Captura o botão físico de voltar
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (lastRoute && lastRoute !== '/') {
+          router.replace(lastRoute as RelativePathString); // volta para a tela anterior
+          setLastRoute(null); // limpa após uso
+          return true; // indica que lidamos com o evento
+        }
+        router.dismiss();
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [lastRoute])
+  );
+
+  const handleBack = () => {
+    console.log('Last route:', lastRoute);
+    if (lastRoute && lastRoute !== '/') {
+      router.replace(lastRoute as RelativePathString); // volta para a tela anterior
+    } else {
+      router.dismiss(); // fallback
+    }
+  };
+
 
   if (loading) {
     return (

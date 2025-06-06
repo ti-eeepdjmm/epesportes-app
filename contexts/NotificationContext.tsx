@@ -4,6 +4,7 @@ import React, {
   useReducer,
   useEffect,
   ReactNode,
+  useState,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSocket } from './SocketContext';
@@ -43,10 +44,14 @@ const NotificationContext = createContext<{
   state: State;
   dispatch: React.Dispatch<Action>;
   markAllRead: () => Promise<void>;
+  lastRoute: string | null;
+  setLastRoute: React.Dispatch<React.SetStateAction<string | null>>;
 }>({
   state: initialState,
   dispatch: () => {},
   markAllRead: async () => {},
+  lastRoute: null,
+  setLastRoute: () => {},
 });
 
 export const useNotifications = () => useContext(NotificationContext);
@@ -55,6 +60,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const { socket } = useSocket();
   const { user } = useAuth();
   const [state, dispatch] = useReducer(reducer, initialState);
+
+  const [lastRoute, setLastRoute] = useState<string | null>(null);
 
   const markAllRead = async () => {
     const now = new Date().toISOString();
@@ -256,7 +263,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, [socket, user]);
 
   return (
-    <NotificationContext.Provider value={{ state, dispatch, markAllRead }}>
+    <NotificationContext.Provider value={{ state, dispatch, markAllRead, lastRoute, setLastRoute }}>
       {children}
     </NotificationContext.Provider>
   );

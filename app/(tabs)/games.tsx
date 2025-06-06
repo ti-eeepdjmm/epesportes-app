@@ -14,10 +14,11 @@ import { AppLoader } from '@/components/AppLoader';
 import { MatchCardSummary } from '@/components/matches/MatchCardSummary';
 import { TeamStandings } from '@/components/standings/TeamStandings';
 import { TopScorers } from '@/components/rankings/TopScorers';
-import { router } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useGamesStore } from '@/stores/useGamesStore';
 import { HomeHeader } from '@/components/HomeHeader';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 export default function GamesScreen() {
   const theme = useTheme();
@@ -37,6 +38,9 @@ export default function GamesScreen() {
   } = useGamesStore();
 
   const translateX = useRef(new Animated.Value(0)).current;
+
+  const pathname = usePathname();
+  const { setLastRoute } = useNotifications();
 
   useEffect(() => {
     loadAll();
@@ -172,7 +176,10 @@ export default function GamesScreen() {
               <MatchCardSummary
                 key={currentMatch.id}
                 match={currentMatch}
-                onPress={() => router.push(`/matches/${currentMatch.id}`)}
+                onPress={() => {
+                  setLastRoute(pathname);
+                  router.push(`/(modals)/matches/${currentMatch.id}`)
+                }}
               />
             </Animated.View>
 

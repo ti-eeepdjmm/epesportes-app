@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { AppLoader } from '@/components/AppLoader';
 import { HomeHeader } from '@/components/HomeHeader';
 import { StyledText } from '@/components/StyledText';
@@ -23,6 +23,7 @@ import { TopScorers } from '@/components/rankings/TopScorers';
 import { PlayerRankingItem, PlayerResolved } from '@/types/player';
 import { TeamStanding } from '@/types';
 import { useHomeStore } from '@/stores/useHomeStore';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 export default function Home() {
   const theme = useTheme();
@@ -32,6 +33,9 @@ export default function Home() {
 
   const [prefLoading, setPrefLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  const pathname = usePathname();
+  const { setLastRoute } = useNotifications();
 
   const {
     lastMatch,
@@ -177,7 +181,10 @@ export default function Home() {
           <StyledText style={styles(theme).smallSectionTitle}>Último Jogo</StyledText>
           <MatchCardSummary
             match={lastMatch}
-            onPress={() => router.push(`/(modals)/matches/${lastMatch.id}`)}
+            onPress={() => {
+              setLastRoute(pathname);
+              router.push(`/(modals)/matches/${lastMatch.id}`)
+            }}
           />
         </>
       )}
@@ -187,7 +194,10 @@ export default function Home() {
           <StyledText style={styles(theme).smallSectionTitle}>Próximo Jogo</StyledText>
           <MatchCardSummary
             match={nextMatch}
-            onPress={() => router.push(`/(modals)/matches/${nextMatch.id}`)}
+            onPress={() => {
+              setLastRoute(pathname);
+              router.push(`/(modals)/matches/${nextMatch.id}`)
+            }}
           />
         </>
       )}
