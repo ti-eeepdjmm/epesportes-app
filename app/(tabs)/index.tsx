@@ -167,7 +167,7 @@ export default function Home() {
       <HomeHeader />
       <View style={styles(theme).sectionHeaderContainer}>
         <StyledText style={styles(theme).subtitle}>Destaques Campeonato</StyledText>
-        <TouchableOpacity onPress={() => router.push('/games')}>
+        <TouchableOpacity onPress={() => router.push('/(tabs)/games')}>
           <StyledText style={styles(theme).linkText}>Ver todos</StyledText>
         </TouchableOpacity>
       </View>
@@ -177,7 +177,7 @@ export default function Home() {
           <StyledText style={styles(theme).smallSectionTitle}>Último Jogo</StyledText>
           <MatchCardSummary
             match={lastMatch}
-            onPress={() => router.push(`/matches/${lastMatch.id}`)}
+            onPress={() => router.push(`/(modals)/matches/${lastMatch.id}`)}
           />
         </>
       )}
@@ -187,7 +187,7 @@ export default function Home() {
           <StyledText style={styles(theme).smallSectionTitle}>Próximo Jogo</StyledText>
           <MatchCardSummary
             match={nextMatch}
-            onPress={() => router.push(`/matches/${nextMatch.id}`)}
+            onPress={() => router.push(`/(modals)/matches/${nextMatch.id}`)}
           />
         </>
       )}

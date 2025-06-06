@@ -10,9 +10,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { NotificationItem } from '../components/notifications/NotificationItem';
-import { useNotifications } from '../contexts/NotificationContext';
-import { Notification } from '../types/notification';
+import { NotificationItem } from '../../components/notifications/NotificationItem';
+import { useNotifications } from '../../contexts/NotificationContext';
+import { Notification } from '../../types/notification';
 import { useTheme } from '@/hooks/useTheme';
 
 export default function NotificationsModal() {
@@ -47,7 +47,7 @@ export default function NotificationsModal() {
     .filter(section => section.data.length > 0);
 
   const handleBack = () => {
-    router.back();
+    router.dismiss();
   };
 
   const handleMarkAllRead = () => {

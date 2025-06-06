@@ -26,7 +26,7 @@ export default function PollScreen() {
     const { polls, loading: pollLoading, voteOnPoll } = usePolls(user?.id || null);
 
 
-    const handleBack = () => router.back();
+    const handleBack = () => router.dismiss();
 
     if (pollLoading) {
         return (

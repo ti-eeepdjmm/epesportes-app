@@ -22,6 +22,15 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 import api from '@/utils/api';
 import { getAccessToken, isUserRegistered, clearTokens } from '@/utils/storage';
 
+export const unstable_settings = {
+  initialRouteName: '(tabs)',
+  modalRoutes: [
+    '(modals)/notifications',
+    '(modals)/polls/[pollId]',
+    '(modals)/matches/[matchId]',
+  ],
+};
+
 WebBrowser.maybeCompleteAuthSession();
 SplashScreen.preventAutoHideAsync().catch(console.warn);
 

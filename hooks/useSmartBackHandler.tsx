@@ -9,8 +9,17 @@ export function useSmartBackHandler() {
     const onBackPress = () => {
       const currentPath = segments.join('/');
 
-      // Ajuste conforme sua home real (ex: (tabs)/index ou somente (tabs))
-      const isInHomeTab = currentPath === '(tabs)' || currentPath === '(tabs)/index';
+      const isModal = segments[0] === '(modals)';
+      const isInHomeTab =
+            currentPath === '(tabs)' ||
+            currentPath === '(tabs)/index' ||
+            segments[1]?.toLowerCase() === 'index'; // safe check
+
+
+      if (isModal) {
+        // Deixa o comportamento default (router.dismiss)
+        return false;
+      }
 
       if (isInHomeTab) {
         Alert.alert('Sair do App', 'Deseja sair?', [
@@ -28,4 +37,3 @@ export function useSmartBackHandler() {
     return () => backHandler.remove();
   }, [segments]);
 }
-

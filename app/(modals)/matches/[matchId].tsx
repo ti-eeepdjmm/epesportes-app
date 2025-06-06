@@ -45,7 +45,7 @@ export default function MatchScreen() {
     })();
   }, [matchId]);
 
- const handleBack = () => {router.back();};
+ const handleBack = () => {router.dismiss();};
 
   if (loading) {
     return (
