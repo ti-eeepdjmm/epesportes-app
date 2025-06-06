@@ -11,6 +11,7 @@ interface TimelineState {
   setInitialLoading: (value: boolean) => void;
   setPosts: (posts: TimelinePostType[]) => void;
   updatePost: (updated: TimelinePostType) => void;
+  addPost: (newPost: TimelinePostType) => void;
   getUserById: (userId: number) => Promise<User | undefined>;
   fetchPosts: () => Promise<void>;
 }
@@ -87,4 +88,11 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
       set({ isLoading: false });
     }
   },
+
+  addPost: (newPost: TimelinePostType) =>
+  set((state) => ({
+    posts: [newPost, ...state.posts].sort(
+      (a, b) => new Date(b.postDate).getTime() - new Date(a.postDate).getTime(),
+    ),
+  })),
 }));

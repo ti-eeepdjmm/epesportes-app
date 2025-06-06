@@ -1,5 +1,12 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  Image, 
+  StyleSheet,
+  Animated, 
+} from 'react-native';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SvgCssUri } from 'react-native-svg/css';
@@ -30,6 +37,17 @@ export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPres
   const { getUserById, users } = useTimelineStore();
   const user = users[post.userId];
 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+useEffect(() => {
+  Animated.timing(fadeAnim, {
+    toValue: 1,
+    duration: 500,
+    useNativeDriver: true,
+  }).start();
+}, [post._id, post.comments.length, JSON.stringify(post.reactions)]);
+
+
   useEffect(() => {
     if (!user) {
       getUserById(post.userId);
@@ -37,7 +55,13 @@ export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPres
   }, [user, post.userId]);
 
   return (
-    <View style={[styles.card, styles.boxShadow, { backgroundColor: theme.white, borderColor: theme.grayLight }]}>
+   <Animated.View
+      style={[
+        styles.card,
+        styles.boxShadow,
+        { backgroundColor: theme.white, borderColor: theme.grayLight, opacity: fadeAnim },
+      ]}
+    >
       {/* Header */}
       <View style={styles.header}>
         <Image
@@ -91,7 +115,7 @@ export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPres
           <Text style={[styles.actionButton, { color: theme.greenLight }]}>Comentar</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </Animated.View>
   );
 };
 

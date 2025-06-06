@@ -23,6 +23,7 @@ export default function ResenhaScreen() {
     fetchPosts,
     initialLoading,
     setInitialLoading,
+    addPost,
   } = useTimelineStore();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -33,20 +34,28 @@ export default function ResenhaScreen() {
   }, []);
 
   useEffect(() => {
-    if (!socket) return;
+  if (!socket) return;
 
-    const handleTimelineUpdate = (payload: {
-      postId: string;
-      updatedPost: TimelinePostType;
-    }) => {
-      updatePost(payload.updatedPost);
-    };
+  const handleTimelineUpdate = (payload: {
+    postId: string;
+    updatedPost: TimelinePostType;
+  }) => {
+    updatePost(payload.updatedPost);
+  };
 
-    socket.on('timeline:update', handleTimelineUpdate);
-    return () => {
-      socket.off('timeline:update', handleTimelineUpdate);
-    };
-  }, [socket]);
+  const handleNewPost = (newPost: TimelinePostType) => {
+    addPost(newPost); // 👈 novo post inserido no início da timeline
+  };
+
+  socket.on('timeline:update', handleTimelineUpdate);
+  socket.on('feed:new-post', handleNewPost);
+
+  return () => {
+    socket.off('timeline:update', handleTimelineUpdate);
+    socket.off('feed:new-post', handleNewPost);
+  };
+}, [socket]);
+
 
   const handleRefresh = async () => {
     setRefreshing(true);

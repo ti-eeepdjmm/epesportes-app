@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   ScrollView,
   View,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Animated,
   RefreshControl,
+  PanResponder,
 } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { AppLoader } from '@/components/AppLoader';
@@ -33,35 +34,13 @@ export default function GamesScreen() {
     handlePrev,
     handleNext,
     setRoundIndex,
-    setMatchIndex,
   } = useGamesStore();
 
   const translateX = useRef(new Animated.Value(0)).current;
 
-  const animateSlide = (direction: 'left' | 'right') => {
-    translateX.setValue(direction === 'left' ? 300 : -300);
-    Animated.timing(translateX, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  };
-
   useEffect(() => {
     loadAll();
   }, []);
-
-  useEffect(() => {
-    animateSlide('left');
-  }, [currentRound, currentMatchIndex]);
-
-  if (initialLoading) {
-    return (
-      <View style={styles(theme).loader}>
-        <AppLoader visible />
-      </View>
-    );
-  }
 
   const groupedMatches = matches.reduce((acc: any[][], match, index) => {
     const groupIndex = Math.floor(index / 5);
@@ -72,6 +51,67 @@ export default function GamesScreen() {
 
   const currentRoundMatches = groupedMatches[currentRound] || [];
   const currentMatch = currentRoundMatches[currentMatchIndex];
+
+  const isFirstMatch = currentRound === 0 && currentMatchIndex === 0;
+  const isLastMatch =
+    currentRound === groupedMatches.length - 1 &&
+    currentMatchIndex === currentRoundMatches.length - 1;
+
+  const panResponder = useMemo(() => {
+    return PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
+      onPanResponderMove: (_, gestureState) => {
+        translateX.setValue(gestureState.dx);
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const threshold = 80;
+
+        if (gestureState.dx < -threshold && !isLastMatch) {
+          Animated.timing(translateX, {
+            toValue: -300,
+            duration: 150,
+            useNativeDriver: true,
+          }).start(() => {
+            handleNext();
+            translateX.setValue(300);
+            Animated.timing(translateX, {
+              toValue: 0,
+              duration: 150,
+              useNativeDriver: true,
+            }).start();
+          });
+        } else if (gestureState.dx > threshold && !isFirstMatch) {
+          Animated.timing(translateX, {
+            toValue: 300,
+            duration: 150,
+            useNativeDriver: true,
+          }).start(() => {
+            handlePrev();
+            translateX.setValue(-300);
+            Animated.timing(translateX, {
+              toValue: 0,
+              duration: 150,
+              useNativeDriver: true,
+            }).start();
+          });
+        } else {
+          Animated.spring(translateX, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    });
+  }, [currentMatchIndex, currentRound, isFirstMatch, isLastMatch]);
+
+  if (initialLoading) {
+    return (
+      <View style={styles(theme).loader}>
+        <AppLoader visible />
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -113,7 +153,9 @@ export default function GamesScreen() {
               name="arrow-forward-circle-outline"
               size={28}
               color={
-                currentRound === groupedMatches.length - 1 ? theme.gray : theme.greenLight
+                currentRound === groupedMatches.length - 1
+                  ? theme.gray
+                  : theme.greenLight
               }
             />
           </TouchableOpacity>
@@ -121,7 +163,12 @@ export default function GamesScreen() {
 
         {currentMatch && (
           <View>
-            <Animated.View style={{ transform: [{ translateX }] }}>
+            <Animated.View
+              {...panResponder.panHandlers}
+              style={{
+                transform: [{ translateX }],
+              }}
+            >
               <MatchCardSummary
                 key={currentMatch.id}
                 match={currentMatch}
@@ -131,17 +178,28 @@ export default function GamesScreen() {
 
             <View style={styles(theme).navigationButtons}>
               <TouchableOpacity
-                onPress={handlePrev}
-                disabled={currentRound === 0 && currentMatchIndex === 0}
+                onPress={() => {
+                  if (isFirstMatch) return;
+                  Animated.timing(translateX, {
+                    toValue: 300,
+                    duration: 150,
+                    useNativeDriver: true,
+                  }).start(() => {
+                    handlePrev();
+                    translateX.setValue(-300);
+                    Animated.timing(translateX, {
+                      toValue: 0,
+                      duration: 150,
+                      useNativeDriver: true,
+                    }).start();
+                  });
+                }}
+                disabled={isFirstMatch}
               >
                 <Ionicons
                   name="chevron-back-circle"
                   size={32}
-                  color={
-                    currentRound === 0 && currentMatchIndex === 0
-                      ? theme.gray
-                      : theme.greenLight
-                  }
+                  color={isFirstMatch ? theme.gray : theme.greenLight}
                 />
               </TouchableOpacity>
 
@@ -150,21 +208,28 @@ export default function GamesScreen() {
               </Text>
 
               <TouchableOpacity
-                onPress={handleNext}
-                disabled={
-                  currentRound === groupedMatches.length - 1 &&
-                  currentMatchIndex === currentRoundMatches.length - 1
-                }
+                onPress={() => {
+                  if (isLastMatch) return;
+                  Animated.timing(translateX, {
+                    toValue: -300,
+                    duration: 150,
+                    useNativeDriver: true,
+                  }).start(() => {
+                    handleNext();
+                    translateX.setValue(300);
+                    Animated.timing(translateX, {
+                      toValue: 0,
+                      duration: 150,
+                      useNativeDriver: true,
+                    }).start();
+                  });
+                }}
+                disabled={isLastMatch}
               >
                 <Ionicons
                   name="chevron-forward-circle"
                   size={32}
-                  color={
-                    currentRound === groupedMatches.length - 1 &&
-                    currentMatchIndex === currentRoundMatches.length - 1
-                      ? theme.gray
-                      : theme.greenLight
-                  }
+                  color={isLastMatch ? theme.gray : theme.greenLight}
                 />
               </TouchableOpacity>
             </View>
