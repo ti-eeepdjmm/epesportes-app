@@ -125,10 +125,10 @@ function RenderApp({ onLayout }: { onLayout: () => void }) {
   }, [url, router]);
 
   // 👇 Só renderiza os Providers se o userId estiver definido
-  if (!user?.authUserId) return null;
+  if (!user?.id) return null;
 
   return (
-    <SocketProvider userId={user.authUserId}>
+    <SocketProvider userId={user.id}>
       <NotificationProvider>
         <SafeAreaView
           style={{ flex: 1, backgroundColor: theme }}

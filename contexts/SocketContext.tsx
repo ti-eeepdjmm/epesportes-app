@@ -12,7 +12,7 @@ const SocketContext = createContext<SocketContextType>({ socket: null });
 export const useSocket = (): SocketContextType => useContext(SocketContext);
 
 interface Props {
-  userId: string;
+  userId: number;
   children: React.ReactNode;
 }
 
