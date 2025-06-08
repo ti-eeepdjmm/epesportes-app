@@ -6,7 +6,10 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "epesportes",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -15,7 +18,8 @@
         "dark": "./assets/icons/ios-dark.png",
         "light": "./assets/icons/ios-light.png",
         "tinted": "./assets/icons/ios-tinted.png"
-      }
+      },
+      "bundleIdentifier": "com.epdjmm.epesportes"
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +27,10 @@
         "monochromeImage": "./assets/icons/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.rickalves.epesportes"
+      "package": "com.epdjmm.epesportes",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -60,11 +67,11 @@
       "router": {
         "origin": false
       },
+      "API_URL": "https://epesportes-api-production.up.railway.app/",
       "eas": {
-        "projectId": "0786a6ad-75ea-4df8-bbb4-e191de91bc28"
-      },
-      "API_URL": "process.env.EXPO_PUBLIC_API_URL"
+        "projectId": "86d8633b-e06c-4fe9-9c93-5af8869057ec"
+      }
     },
-    "owner": "rickalves"
+    "owner": "epdjmm"
   }
 }

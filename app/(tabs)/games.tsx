@@ -248,7 +248,7 @@ export default function GamesScreen() {
       <TeamStandings data={standings} full={true} />
 
       <Text style={styles(theme).sectionTitle}>Artilharia</Text>
-      <TopScorers full={true} data={scorers} />
+      <TopScorers data={scorers} full={true} />
     </ScrollView>
   );
 }

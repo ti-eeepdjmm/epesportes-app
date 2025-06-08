@@ -48,7 +48,6 @@ export default function NotificationsModal() {
     .filter(section => section.data.length > 0);
 
   const handleBack = () => {
-    console.log('Last route:', lastRoute);
     if (lastRoute && lastRoute !== '/') {
       router.replace(lastRoute as RelativePathString); // volta para a tela anterior
     } else {

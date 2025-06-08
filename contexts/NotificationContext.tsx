@@ -48,10 +48,10 @@ const NotificationContext = createContext<{
   setLastRoute: React.Dispatch<React.SetStateAction<string | null>>;
 }>({
   state: initialState,
-  dispatch: () => {},
-  markAllRead: async () => {},
+  dispatch: () => { },
+  markAllRead: async () => { },
   lastRoute: null,
-  setLastRoute: () => {},
+  setLastRoute: () => { },
 });
 
 export const useNotifications = () => useContext(NotificationContext);
@@ -253,9 +253,42 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       dispatch({ type: 'RECEIVE', notification: notif });
     });
 
+    // Reação em post
+    socket.on('feed:new-reaction', (payload) => {
+      console.log('[NotificationProvider] Reação recebida:', payload);
+      const notif: Notification = {
+        id: `reaction-${payload.sender.id}-${payload.timestamp}`,
+        type: 'reaction',
+        message: payload.message,
+        link: payload.link,
+        date: new Date().toISOString(),
+        read: false,
+        isGlobal: false,
+        payload,
+      };
+      dispatch({ type: 'RECEIVE', notification: notif });
+    });
+
+    // Comentário em post
+    socket.on('feed:new-comment', (payload) => {
+      const notif: Notification = {
+        id: `comment-${payload.sender.id}-${payload.timestamp}`,
+        type: 'comment',
+        message: payload.message,
+        link: payload.link,
+        date: new Date().toISOString(),
+        read: false,
+        isGlobal: false,
+        payload,
+      };
+      dispatch({ type: 'RECEIVE', notification: notif });
+    });
+
     return () => {
       socket.offAny();
       socket.off('feed:new-post');
+      socket.off('feed:new-reaction');
+      socket.off('feed:new-comment');
       socket.off('Match:update');
       socket.off('global:notification');
       socket.off('mention:notification');

@@ -5,7 +5,6 @@ import { useCallback } from 'react';
 
 export function useSmartBackHandler() {
   const pathname = usePathname();
-  console.log('Current pathname:', pathname);
 
   useFocusEffect(
     useCallback(() => {

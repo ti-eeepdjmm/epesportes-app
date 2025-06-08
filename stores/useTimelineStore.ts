@@ -1,4 +1,3 @@
-// src/stores/useTimelineStore.ts
 import { create } from 'zustand';
 import api from '@/utils/api';
 import { TimelinePostType, User } from '@/types';
@@ -8,12 +7,17 @@ interface TimelineState {
   users: Record<number, User>;
   isLoading: boolean;
   initialLoading: boolean;
+  currentPage: number;
+  totalPosts: number;
+  hasMore: boolean;
   setInitialLoading: (value: boolean) => void;
   setPosts: (posts: TimelinePostType[]) => void;
   updatePost: (updated: TimelinePostType) => void;
   addPost: (newPost: TimelinePostType) => void;
   getUserById: (userId: number) => Promise<User | undefined>;
-  fetchPosts: () => Promise<void>;
+  fetchInitialPosts: () => Promise<void>;
+  fetchMorePosts: () => Promise<void>;
+  resetTimeline: () => void;
 }
 
 export const useTimelineStore = create<TimelineState>((set, get) => ({
@@ -21,6 +25,9 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
   users: {},
   isLoading: false,
   initialLoading: true,
+  currentPage: 1,
+  totalPosts: 0,
+  hasMore: true,
 
   setInitialLoading: (value) => set({ initialLoading: value }),
 
@@ -30,7 +37,7 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
     );
     set({ posts: sortedPosts });
 
-    // Buscar usuários únicos após setar posts
+    // Carrega usuários associados
     const uniqueUserIds = Array.from(new Set(posts.map((p) => p.userId)));
     const usersMap: Record<number, User> = {};
 
@@ -77,22 +84,65 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
     }
   },
 
-  fetchPosts: async () => {
-    set({ isLoading: true });
+  fetchInitialPosts: async () => {
+    set({ isLoading: true, currentPage: 1 });
+
     try {
-      const { data } = await api.get<TimelinePostType[]>('/timeline-posts');
-      await get().setPosts(data);
+      const { data } = await api.get('/timeline-posts?page=1&limit=10');
+      const posts = data.data;
+      const total = data.total;
+
+      set({
+        posts,
+        totalPosts: total,
+        currentPage: 1,
+        hasMore: posts.length < total,
+      });
+
+      await get().setPosts(posts);
     } catch (err) {
-      console.warn('Erro ao buscar posts', err);
+      console.warn('Erro ao buscar posts iniciais', err);
     } finally {
       set({ isLoading: false });
     }
   },
 
-  addPost: (newPost: TimelinePostType) =>
-  set((state) => ({
-    posts: [newPost, ...state.posts].sort(
-      (a, b) => new Date(b.postDate).getTime() - new Date(a.postDate).getTime(),
-    ),
-  })),
+  fetchMorePosts: async () => {
+    const { currentPage, posts, totalPosts } = get();
+    const nextPage = currentPage + 1;
+
+    try {
+      const { data } = await api.get(`/timeline-posts?page=${nextPage}&limit=10`);
+      const newPosts: TimelinePostType[] = data.data;
+
+      const allPosts = [...posts, ...newPosts];
+      const uniquePosts = Array.from(new Map(allPosts.map((p) => [p._id, p])).values());
+
+      set({
+        posts: uniquePosts,
+        currentPage: nextPage,
+        hasMore: uniquePosts.length < totalPosts,
+      });
+
+      await get().setPosts(uniquePosts);
+    } catch (err) {
+      console.warn('Erro ao carregar mais posts', err);
+    }
+  },
+
+  addPost: (newPost) =>
+    set((state) => ({
+      posts: [newPost, ...state.posts].sort(
+        (a, b) => new Date(b.postDate).getTime() - new Date(a.postDate).getTime(),
+      ),
+    })),
+
+  resetTimeline: () => {
+    set({
+      // posts: [],
+      currentPage: 1,
+      totalPosts: 0,
+      hasMore: true,
+    });
+  },
 }));

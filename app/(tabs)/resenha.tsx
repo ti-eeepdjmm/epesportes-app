@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import {
   View,
-  ScrollView,
+  FlatList,
   RefreshControl,
   StyleSheet,
   Text,
@@ -20,47 +20,60 @@ export default function ResenhaScreen() {
   const {
     posts,
     updatePost,
-    fetchPosts,
+    addPost,
+    fetchInitialPosts,
+    fetchMorePosts,
     initialLoading,
     setInitialLoading,
-    addPost,
+    hasMore,
+    resetTimeline,
   } = useTimelineStore();
-  const [refreshing, setRefreshing] = useState(false);
 
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  // Carregamento inicial
   useEffect(() => {
     if (initialLoading) {
-      fetchPosts().finally(() => setInitialLoading(false));
+      fetchInitialPosts().finally(() => setInitialLoading(false));
     }
   }, []);
 
+  // WebSocket para novos posts e updates
   useEffect(() => {
-  if (!socket) return;
+    if (!socket) return;
 
-  const handleTimelineUpdate = (payload: {
-    postId: string;
-    updatedPost: TimelinePostType;
-  }) => {
-    updatePost(payload.updatedPost);
-  };
+    const handleTimelineUpdate = (payload: {
+      postId: string;
+      updatedPost: TimelinePostType;
+    }) => {
+      updatePost(payload.updatedPost);
+    };
 
-  const handleNewPost = (newPost: TimelinePostType) => {
-    addPost(newPost); // 👈 novo post inserido no início da timeline
-  };
+    const handleNewPost = (newPost: TimelinePostType) => {
+      addPost(newPost);
+    };
 
-  socket.on('timeline:update', handleTimelineUpdate);
-  socket.on('feed:new-post', handleNewPost);
+    socket.on('timeline:update', handleTimelineUpdate);
+    socket.on('feed:new-post', handleNewPost);
 
-  return () => {
-    socket.off('timeline:update', handleTimelineUpdate);
-    socket.off('feed:new-post', handleNewPost);
-  };
-}, [socket]);
+    return () => {
+      socket.off('timeline:update', handleTimelineUpdate);
+      socket.off('feed:new-post', handleNewPost);
+    };
+  }, [socket]);
 
-
+  // Pull to refresh
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchPosts();
+    resetTimeline();
+    await fetchInitialPosts();
     setRefreshing(false);
+  };
+
+  const handleLoadMore = async () => {
+    if (hasMore && !refreshing) {
+      await fetchMorePosts();
+    }
   };
 
   if (initialLoading) {
@@ -72,9 +85,18 @@ export default function ResenhaScreen() {
   }
 
   return (
-    <ScrollView
+    <FlatList
       style={{ flex: 1, backgroundColor: theme.white }}
-      contentContainerStyle={{ padding: 16 }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
+      data={posts}
+      keyExtractor={(item) => item._id}
+      renderItem={({ item }) => <ResenhaCard post={item} />}
+      ListHeaderComponent={<HomeHeader />}
+      ListEmptyComponent={
+        <Text style={[styles(theme).emptyText, { color: theme.gray }]}>
+          Nenhuma postagem por aqui ainda...
+        </Text>
+      }
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -82,16 +104,9 @@ export default function ResenhaScreen() {
           colors={[theme.greenLight]}
         />
       }
-    >
-      <HomeHeader />
-      {posts.length === 0 ? (
-        <Text style={[styles(theme).emptyText, { color: theme.gray }]}>
-          Nenhuma postagem por aqui ainda...
-        </Text>
-      ) : (
-        posts.map((post) => <ResenhaCard key={post._id} post={post} />)
-      )}
-    </ScrollView>
+      onEndReached={handleLoadMore}
+      onEndReachedThreshold={0.5}
+    />
   );
 }
 
