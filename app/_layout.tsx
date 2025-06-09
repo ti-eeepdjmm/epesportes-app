@@ -124,21 +124,21 @@ function RenderApp({ onLayout }: { onLayout: () => void }) {
     })();
   }, [url, router]);
 
-  // 👇 Só renderiza os Providers se o userId estiver definido
-  if (!user?.id) return null;
-
   return (
-    <SocketProvider userId={user.id}>
-      <NotificationProvider>
-        <SafeAreaView
-          style={{ flex: 1, backgroundColor: theme }}
-          onLayout={onLayout}
-        >
-          <StatusBar style={theme === '#000' ? 'light' : 'dark'} />
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: theme }}
+      onLayout={onLayout}
+    >
+      <StatusBar style={theme === '#000' ? 'light' : 'dark'} />
+
+      {/* Envolve os Providers aqui, mas renderiza o Slot sempre */}
+      <SocketProvider userId={user?.id ?? 0}>
+        <NotificationProvider>
           <Slot />
-        </SafeAreaView>
-      </NotificationProvider>
-    </SocketProvider>
+        </NotificationProvider>
+      </SocketProvider>
+    </SafeAreaView>
   );
 }
+
 

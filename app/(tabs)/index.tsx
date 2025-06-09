@@ -52,34 +52,36 @@ export default function Home() {
     setInitialLoading,
   } = useHomeStore();
 
-  const { voteOnPoll, refetch: refetchPolls } = usePolls(user?.id || null);
+  const { voteOnPoll, refetch: refetchPolls } = usePolls(user?.id);
 
+  // Carrega preferências de tema
   useEffect(() => {
-    async function loadPreferences() {
+    const loadPreferences = async () => {
       try {
         setPrefLoading(true);
         const res = await api.get(`/user-preferences/user/${user?.id}`);
         setTheme(res.data.darkMode ? 'dark' : 'light');
       } catch {
+        // Silencioso
       } finally {
         setPrefLoading(false);
       }
-    }
+    };
+
     if (user?.id) loadPreferences();
   }, [user]);
 
   const loadMatches = async () => {
     try {
       const res = await api.get<MatchSummary[]>('/matches');
-
       const finished = res.data
         .filter(m => m.status === 'completed')
         .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
-      setLastMatch(finished[0] || null);
-
       const scheduled = res.data
         .filter(m => m.status === 'scheduled')
         .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
+
+      setLastMatch(finished[0] || null);
       setNextMatch(scheduled[0] || null);
     } catch (e) {
       console.warn('Erro ao buscar partidas', e);
@@ -99,7 +101,7 @@ export default function Home() {
           return {
             id: player.id,
             name: player.user.name,
-            photo: player.user.profilePhoto || `https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/avatars/default-avatar.png`,
+            photo: player.user.profilePhoto || 'https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/avatars/default-avatar.png',
             team: {
               name: player.team.name,
               logo: player.team.logo,
@@ -130,7 +132,7 @@ export default function Home() {
       loadMatches(),
       loadScorers(),
       loadStandings(),
-      refetchPolls?.().then((data) => setPolls(data ?? [])),
+      refetchPolls?.().then(data => setPolls(data ?? [])),
     ]);
     setRefreshing(false);
   };
@@ -141,10 +143,10 @@ export default function Home() {
         loadMatches(),
         loadScorers(),
         loadStandings(),
-        refetchPolls?.().then((data) => setPolls(data ?? [])),
+        refetchPolls?.().then(data => setPolls(data ?? [])),
       ]).finally(() => setInitialLoading(false));
     }
-  }, [user]);
+  }, [user, initialLoading]);
 
   if (!user || initialLoading) {
     return (
@@ -169,6 +171,7 @@ export default function Home() {
       }
     >
       <HomeHeader />
+
       <View style={styles(theme).sectionHeaderContainer}>
         <StyledText style={styles(theme).subtitle}>Destaques Campeonato</StyledText>
         <TouchableOpacity onPress={() => router.push('/(tabs)/games')}>
@@ -183,7 +186,7 @@ export default function Home() {
             match={lastMatch}
             onPress={() => {
               setLastRoute(pathname);
-              router.push(`/(modals)/matches/${lastMatch.id}`)
+              router.push(`/(modals)/matches/${lastMatch.id}`);
             }}
           />
         </>
@@ -196,7 +199,7 @@ export default function Home() {
             match={nextMatch}
             onPress={() => {
               setLastRoute(pathname);
-              router.push(`/(modals)/matches/${nextMatch.id}`)
+              router.push(`/(modals)/matches/${nextMatch.id}`);
             }}
           />
         </>
@@ -209,17 +212,18 @@ export default function Home() {
       <TopScorers data={scorers} />
 
       {polls.length > 0 && (
-        <StyledText style={styles(theme).smallSectionTitle}>Enquetes</StyledText>
+        <>
+          <StyledText style={styles(theme).smallSectionTitle}>Enquetes</StyledText>
+          {polls.map(poll => (
+            <PollCard
+              key={poll.id}
+              poll={poll}
+              currentUserId={user.id}
+              onVote={(option) => voteOnPoll(poll.id, option, user)}
+            />
+          ))}
+        </>
       )}
-
-      {polls.map((poll) => (
-        <PollCard
-          key={poll.id}
-          poll={poll}
-          currentUserId={user.id}
-          onVote={(option) => voteOnPoll(poll.id, option, user)}
-        />
-      ))}
     </ScrollView>
   );
 }
@@ -234,11 +238,6 @@ const styles = (theme: any) =>
       justifyContent: 'flex-start',
       gap: 4,
       padding: 16,
-    },
-    title: {
-      fontSize: 18,
-      fontFamily: 'Poppins_600SemiBold',
-      color: theme.black,
     },
     sectionHeaderContainer: {
       flexDirection: 'row',
