@@ -82,8 +82,8 @@ export const PollCard: React.FC<PollCardProps> = ({
         const progressColor = isVotingOpen
           ? theme.greenLight
           : isWinner
-            ? theme.greenLight
-            : theme.gray;
+          ? theme.greenLight
+          : theme.gray;
 
         return (
           <View key={opt.value}>
@@ -97,19 +97,14 @@ export const PollCard: React.FC<PollCardProps> = ({
               >
                 {opt.image && opt.type === 'team' ? (
                   <View
-                  style={
-                      {
-                        borderWidth:2,
-                        borderColor: theme.gray,
-                        borderRadius: 32,
-                        padding:2
-                      }
-                    }>
-                    <SvgCssUri
-                      uri={opt.image}
-                      width={40}
-                      height={40}
-                    />
+                    style={{
+                      borderWidth: 2,
+                      borderColor: theme.gray,
+                      borderRadius: 32,
+                      padding: 2,
+                    }}
+                  >
+                    <SvgCssUri uri={opt.image} width={40} height={40} />
                   </View>
                 ) : opt.image ? (
                   <Image
@@ -118,7 +113,9 @@ export const PollCard: React.FC<PollCardProps> = ({
                   />
                 ) : null}
                 <Text style={{ color: theme.black, flex: 1 }}>{opt.label}</Text>
-                <Text style={{ color: theme.black}}>{(percentage * 100).toFixed(0)}%</Text>
+                <Text style={{ color: theme.black }}>
+                  {(percentage * 100).toFixed(0)}%
+                </Text>
               </View>
               <ProgressBar
                 progress={percentage}
@@ -164,7 +161,12 @@ export const PollCard: React.FC<PollCardProps> = ({
         }}
       >
         <Text
-          style={{ color: theme.black, fontSize: 12, marginTop: 8, fontWeight: 'bold' }}
+          style={{
+            color: theme.black,
+            fontSize: 12,
+            marginTop: 8,
+            fontWeight: 'bold',
+          }}
         >
           Total de votos: {poll.totalVotes}
         </Text>
@@ -181,72 +183,51 @@ export const PollCard: React.FC<PollCardProps> = ({
         </View>
       </View>
 
+      {/* Novo Modal estilizado */}
       <Modal visible={!!showVoters && voterUsers.length > 0} transparent animationType="slide">
-        <View
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-            backgroundColor: '#000000aa',
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: theme.white,
-              margin: 20,
-              padding: 16,
-              borderRadius: 12,
-              maxHeight: '80%',
-            }}
-          >
-            <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 8, color: theme.black }}>
-              Votos em: {showVoters?.label}
-            </Text>
+  <View style={stylesModal.overlay}>
+    <View style={[stylesModal.container, { backgroundColor: theme.white }]}>
+      <Text style={[stylesModal.title, { color: theme.black }]}>
+        Votos em: {showVoters?.label}
+      </Text>
 
-            {loadingUsers ? (
-              <ActivityIndicator
-                size="large"
-                color={theme.greenLight}
-                style={{ marginVertical: 20 }}
+      {loadingUsers ? (
+        <ActivityIndicator
+          size="large"
+          color={theme.greenLight}
+          style={{ marginVertical: 20 }}
+        />
+      ) : (
+        <FlatList
+          data={voterUsers}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <View style={stylesModal.item}>
+              <Image
+                source={{
+                  uri: item.profilePhoto ||
+                    `https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/avatars/default-avatar.png`,
+                }}
+                style={stylesModal.avatar}
               />
-            ) : (
-              <ScrollView style={{ maxHeight: 300 }}>
-                {voterUsers.map((item) => (
-                  <View
-                    key={item.id}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      paddingVertical: 8,
-                    }}
-                  >
-                    <Image
-                      source={{
-                        uri:
-                          item.profilePhoto ||
-                          `https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/avatars/default-avatar.png`,
-                      }}
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 16,
-                        marginRight: 8,
-                      }}
-                    />
-                    <Text style={{color: theme.black }}>{item.name || `Usuário #${item.id}`}</Text>
-                  </View>
-                ))}
-              </ScrollView>
-            )}
+              <View style={stylesModal.info}>
+                <Text style={[stylesModal.name, { color: theme.black }]}>{item.name}</Text>
+                <Text style={[stylesModal.username, { color: theme.gray }]}>@{item.username}</Text>
+              </View>
+            </View>
+          )}
+        />
+      )}
 
-            <TouchableOpacity
-              onPress={() => setShowVoters(null)}
-              style={{ marginTop: 16, alignSelf: 'flex-end' }}
-            >
-              <Text style={{ color: theme.greenLight }}>Fechar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <TouchableOpacity
+        onPress={() => setShowVoters(null)}
+        style={[stylesModal.closeButton]}
+      >
+        <Text style={{ color: theme.greenLight }}>Fechar</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
     </View>
   );
 };
@@ -265,12 +246,55 @@ const styles = StyleSheet.create({
   },
   boxShadow: {
     borderWidth: 1,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
   },
 });
+
+const stylesModal = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: '#000000aa',
+    justifyContent: 'flex-end',
+  },
+  container: {
+    maxHeight: '60%',
+    padding: 24,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+    gap: 12,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  info: {
+    flex: 1,
+  },
+  name: {
+    fontWeight: 'bold',
+  },
+  username: {
+    fontSize: 12,
+  },
+  closeButton: {
+    padding: 12,
+    marginTop: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+});
+

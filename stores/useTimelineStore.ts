@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import api from '@/utils/api';
-import { TimelinePostType, User } from '@/types';
+import { ReactionType, TimelinePostType, User } from '@/types';
 
 interface TimelineState {
   posts: TimelinePostType[];
@@ -17,6 +17,7 @@ interface TimelineState {
   getUserById: (userId: number) => Promise<User | undefined>;
   fetchInitialPosts: () => Promise<void>;
   fetchMorePosts: () => Promise<void>;
+  reactToPost: (postId: string, reaction: ReactionType, userId: number) => Promise<void>
   resetTimeline: () => void;
 }
 
@@ -136,6 +137,57 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
         (a, b) => new Date(b.postDate).getTime() - new Date(a.postDate).getTime(),
       ),
     })),
+
+  reactToPost: async (postId, newReaction, userId) => {
+    const { posts } = get();
+    const post = posts.find((p) => p._id === postId);
+    if (!post) return;
+
+    // Encontra reação atual do usuário (se houver)
+    let previousReaction: keyof typeof post.reactions | null = null;
+
+    for (const [type, userList] of Object.entries(post.reactions)) {
+      if (userList.includes(userId)) {
+        previousReaction = type as keyof typeof post.reactions;
+        break;
+      }
+    }
+
+    // Atualização otimista
+    const updatedReactions = { ...post.reactions };
+
+    // Remove anterior
+    if (previousReaction) {
+      updatedReactions[previousReaction] = updatedReactions[previousReaction].filter((id) => id !== userId);
+    }
+
+    // Adiciona nova
+    if (newReaction) {
+      updatedReactions[newReaction] = [...(updatedReactions[newReaction] || []), userId];
+    }
+
+    const updatedPost: TimelinePostType = {
+      ...post,
+      reactions: updatedReactions,
+    };
+
+    // Atualiza na store
+    set((state) => ({
+      posts: state.posts.map((p) => (p._id === postId ? updatedPost : p)),
+    }));
+
+    // Envia pro backend
+    try {
+      await api.post(`/timeline-posts/${postId}/react`, {
+        reactionType: newReaction,
+        userId,
+      });
+    } catch (err) {
+      console.warn('Erro ao reagir', err);
+      // Se quiser desfazer em caso de erro, você pode restaurar o post anterior aqui
+    }
+  },
+
 
   resetTimeline: () => {
     set({

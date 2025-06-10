@@ -20,3 +20,10 @@ export interface TimelinePostType {
   postDate: string;
   __v?: number;
 }
+
+export type ReactionType =
+  | 'liked'
+  | 'beast'
+  | 'plays_great'
+  | 'amazing_goal'
+  | 'stylish';
