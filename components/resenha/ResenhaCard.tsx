@@ -6,8 +6,9 @@ import {
   Image,
   StyleSheet,
   Animated,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
-
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SvgCssUri } from 'react-native-svg/css';
@@ -18,8 +19,9 @@ import { Separator } from '../Separator';
 import { useTimelineStore } from '@/stores/useTimelineStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { ReactionsModal } from './ReactionsModal';
+import { CommentsModal } from './commentsModal';
 
-const reactionLabels: Record<keyof typeof reactionIcons, string> = {
+const reactionLabels = {
   liked: 'Curtir',
   beast: 'Brabo',
   plays_great: 'Jogou Muito',
@@ -27,7 +29,7 @@ const reactionLabels: Record<keyof typeof reactionIcons, string> = {
   stylish: 'Tirou onda',
 };
 
-const reactionColors: Record<keyof typeof reactionIcons, string> = {
+const reactionColors = {
   liked: '#0E7E3F',
   beast: '#F4A261',
   plays_great: '#008AEE',
@@ -43,35 +45,27 @@ interface Props {
 
 export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPress }) => {
   const [showReactions, setShowReactions] = useState(false);
+  const [showReactionsModal, setShowReactionsModal] = useState(false);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [newComment, setNewComment] = useState('');
+  const [loadingComment, setLoadingComment] = useState(false);
   const reactionAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const timeAgoRaw = formatDistanceToNow(new Date(post.postDate), {
+  const timeAgo = formatDistanceToNow(new Date(post.postDate), {
     addSuffix: true,
     locale: ptBR,
-  });
-
-  const timeAgo = timeAgoRaw
-    .replace('há cerca de', 'há')
-    .replace('em cerca de', 'em');
+  }).replace('há cerca de', 'há').replace('em cerca de', 'em');
 
   const theme = useTheme();
   const { user } = useAuth();
   const reactionTypes = Object.keys(post.reactions) as (keyof typeof post.reactions)[];
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const [showReactionsModal, setShowReactionsModal] = useState(false);
-
-  const {
-    reactToPost,
-    users,
-    getUserById,
-  } = useTimelineStore();
-
+  const { reactToPost, addCommentToPost, users, getUserById } = useTimelineStore();
   const author = users[post.userId];
 
   useEffect(() => {
-    if (!author) {
-      getUserById(post.userId);
-    }
+    if (!author) getUserById(post.userId);
   }, [author, post.userId]);
 
   useEffect(() => {
@@ -103,52 +97,55 @@ export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPres
     setShowReactions(false);
   };
 
+  const handleSendComment = async () => {
+    if (!newComment.trim() || !user) return;
+    setLoadingComment(true);
+    const comment = newComment;
+    setNewComment('');
+    await addCommentToPost(post._id, comment, user.id);
+    setLoadingComment(false);
+  };
+
+  useEffect(() => {
+    post.comments.forEach((comment) => {
+      if (!users[comment.userId]) {
+        getUserById(comment.userId);
+      }
+    });
+  }, [post.comments, users]);
+
+
   return (
     <Animated.View
-      style={[
-        styles.card,
-        styles.boxShadow,
-        {
-          backgroundColor: theme.white,
-          borderColor: theme.grayLight,
-          opacity: fadeAnim,
-        },
-      ]}
+      style={[styles.card, styles.boxShadow, {
+        backgroundColor: theme.white,
+        borderColor: theme.grayLight,
+        opacity: fadeAnim,
+      }]}
     >
-      {/* Header */}
       <View style={styles.header}>
         <Image
-          source={{
-            uri:
-              author?.profilePhoto ||
-              'https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/avatars/default-avatar.png',
-          }}
+          source={{ uri: author?.profilePhoto || 'https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/avatars/default-avatar.png' }}
           style={styles.avatar}
         />
         <View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <Text style={[styles.author, { color: theme.black }]}>{author?.name || 'Usuário'}</Text>
-            <Text style={[styles.author, { color: theme.gray, fontSize: 12 }]}>@{author?.username || ''}</Text>
+            <Text style={[styles.author, { color: theme.gray, fontSize: 12 }]}>{`@${author?.username}` || ''}</Text>
           </View>
           <Text style={[styles.time, { color: theme.greenLight }]}>{timeAgo}</Text>
         </View>
       </View>
 
-      {/* Conteúdo */}
       <Text style={[styles.content, { color: theme.black }]}>{post.content}</Text>
 
-      {/* Reações */}
       <View style={styles.reactionsRow}>
         {reactionTypes.map((type) => {
           const count = post.reactions[type].length;
           if (count === 0) return null;
 
           return (
-            <TouchableOpacity
-              key={type}
-              style={styles.reactionItem}
-              onPress={() => setShowReactionsModal(true)}
-            >
+            <TouchableOpacity key={type} style={styles.reactionItem} onPress={() => setShowReactionsModal(true)}>
               <SvgCssUri uri={reactionIcons[type]} width={24} height={24} />
               <Text style={[styles.reactionCount, { color: theme.black }]}>{count}</Text>
             </TouchableOpacity>
@@ -156,7 +153,6 @@ export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPres
         })}
       </View>
 
-      {/* Reaction Menu */}
       {showReactions && (
         <Animated.View
           style={{
@@ -190,13 +186,9 @@ export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPres
         </Animated.View>
       )}
 
-      {/* Ações */}
       <Separator style={{ marginVertical: 8 }} />
       <View style={styles.actions}>
-        <TouchableOpacity
-          onPress={() => setShowReactions((prev) => !prev)}
-          style={styles.actionContainer}
-        >
+        <TouchableOpacity onPress={() => setShowReactions((prev) => !prev)} style={styles.actionContainer}>
           {(() => {
             const userReaction = Object.entries(post.reactions).find(
               ([_, userIds]) => userIds.includes(user?.id ?? -1),
@@ -228,10 +220,7 @@ export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPres
           })()}
         </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => onCommentPress?.(post._id)}
-          style={styles.actionContainer}
-        >
+        <TouchableOpacity onPress={() => setShowCommentsModal(true)} style={styles.actionContainer}>
           <SvgCssUri
             uri={'https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/logos/chat-icon.svg'}
             width={24}
@@ -239,13 +228,26 @@ export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPres
           />
           <Text style={[styles.actionButton, { color: theme.greenLight }]}>Comentar</Text>
         </TouchableOpacity>
+
       </View>
+      {post.comments.length > 0 && !showCommentsModal && (
+        <TouchableOpacity onPress={() => setShowCommentsModal(true)}>
+          <Text style={{ color: theme.gray, marginTop: 12 }}>
+            Ver todos os {post.comments.length} comentários
+          </Text>
+        </TouchableOpacity>
+      )}
 
       <ReactionsModal
-        post={post}
-        visible={showReactionsModal}
+        post={post} visible={showReactionsModal}
         onClose={() => setShowReactionsModal(false)}
       />
+      <CommentsModal
+        postId={post._id}
+        visible={showCommentsModal}
+        onClose={() => setShowCommentsModal(false)}
+      />
+
     </Animated.View>
   );
 };

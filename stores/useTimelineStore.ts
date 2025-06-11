@@ -18,6 +18,8 @@ interface TimelineState {
   fetchInitialPosts: () => Promise<void>;
   fetchMorePosts: () => Promise<void>;
   reactToPost: (postId: string, reaction: ReactionType, userId: number) => Promise<void>
+  addCommentToPost: (postId: string, comment: string, userId: number) => Promise<void>;
+   getPostById: (id: string) => Promise<TimelinePostType | null>;
   resetTimeline: () => void;
 }
 
@@ -187,6 +189,46 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
       // Se quiser desfazer em caso de erro, você pode restaurar o post anterior aqui
     }
   },
+
+  addCommentToPost: async (postId, content, userId) => {
+  const comment = {
+    userId,
+    content,
+    commentDate: new Date().toISOString(),
+  };
+
+  // Adiciona otimista
+  set((state) => ({
+    posts: state.posts.map((p) =>
+      p._id === postId ? { ...p, comments: [...p.comments, comment] } : p
+    ),
+  }));
+
+  // Envia ao backend (sem esperar ele devolver os comentários)
+  await api.post(`/timeline-posts/${postId}/comment`, {
+    content,
+    userId,
+  });
+},
+
+getPostById: async (id) => {
+  try {
+    const response = await api.get(`/timeline-posts/${id}`);
+    const post = response.data;
+
+    set((state) => ({
+      posts: state.posts.some((p) => p._id === id)
+        ? state.posts
+        : [...state.posts, post],
+    }));
+
+    return post;
+  } catch (error) {
+    console.error('Erro ao buscar post por ID:', error);
+    return null;
+  }
+},
+
 
 
   resetTimeline: () => {
