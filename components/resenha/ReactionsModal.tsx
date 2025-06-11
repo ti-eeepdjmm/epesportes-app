@@ -7,6 +7,7 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { SvgCssUri } from 'react-native-svg/css';
 import { TimelinePostType, User } from '@/types';
@@ -28,6 +29,7 @@ interface UserReaction {
 export const ReactionsModal: React.FC<Props> = ({ post, visible, onClose }) => {
   const [userReactions, setUserReactions] = useState<UserReaction[]>([]);
   const { users, getUserById } = useTimelineStore();
+  const [loading, setLoading] = useState(false);
   const theme = useTheme();
 
   useEffect(() => {
@@ -35,47 +37,58 @@ export const ReactionsModal: React.FC<Props> = ({ post, visible, onClose }) => {
 
     const collected: UserReaction[] = [];
 
+    let allUsersLoaded = true;
+
     Object.entries(post.reactions).forEach(([reaction, userIds]) => {
       userIds.forEach((id) => {
         collected.push({ userId: id, reaction: reaction as keyof typeof reactionIcons });
-        if (!users[id]) getUserById(id);
+        if (!users[id]) {
+          getUserById(id); // busca apenas se ainda não está no store
+          allUsersLoaded = false;
+        }
       });
     });
 
     setUserReactions(collected);
+    setLoading(!allUsersLoaded);
   }, [visible, post.reactions]);
+
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
         <View style={[styles.container, { backgroundColor: theme.white }]}>
           <Text style={[styles.title, { color: theme.black }]}>Reações</Text>
-
-          <FlatList
-            data={userReactions}
-            keyExtractor={(item, index) => `${item.userId}-${item.reaction}-${index}`}
-            renderItem={({ item }) => {
-              const user: User | undefined = users[item.userId];
-              return (
-                <View style={styles.item}>
-                  <Image
-                    source={{
-                      uri:
-                        user?.profilePhoto ||
-                        'https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/avatars/default-avatar.png',
-                    }}
-                    style={styles.avatar}
-                  />
-                  <View style={styles.info}>
-                    <Text style={[styles.name, { color: theme.black }]}>{user?.name || 'Usuário'}</Text>
-                    <Text style={[styles.username, { color: theme.gray }]}>@{user?.username || ''}</Text>
+          {loading ? (
+            <ActivityIndicator size="large" color={theme.greenLight} style={{ marginVertical: 20 }} />
+          ) : (
+            <FlatList
+              data={userReactions}
+              keyExtractor={(item, index) => `${item.userId}-${item.reaction}-${index}`}
+              renderItem={({ item }) => {
+                const user: User | undefined = users[item.userId];
+                return (
+                  <View style={styles.item}>
+                    <Image
+                      source={{
+                        uri:
+                          user?.profilePhoto ||
+                          'https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/avatars/default-avatar.png',
+                      }}
+                      style={styles.avatar}
+                    />
+                    <View style={styles.info}>
+                      <Text style={[styles.name, { color: theme.black }]}>{user?.name || 'Usuário'}</Text>
+                      <Text style={[styles.username, { color: theme.gray }]}>@{user?.username || ''}</Text>
+                    </View>
+                    <SvgCssUri uri={reactionIcons[item.reaction]} width={28} height={28} />
                   </View>
-                  <SvgCssUri uri={reactionIcons[item.reaction]} width={28} height={28} />
-                </View>
-              );
-            }}
-          />
+                );
+              }}
+            />
+          )}
 
+          {/* Botão de fechar */}
           <TouchableOpacity onPress={onClose} style={[styles.closeButton]}>
             <Text style={{ color: theme.greenLight }}>Fechar</Text>
           </TouchableOpacity>

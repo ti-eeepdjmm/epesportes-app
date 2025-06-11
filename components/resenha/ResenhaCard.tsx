@@ -8,7 +8,6 @@ import {
   Animated,
 } from 'react-native';
 
-
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SvgCssUri } from 'react-native-svg/css';
@@ -26,6 +25,14 @@ const reactionLabels: Record<keyof typeof reactionIcons, string> = {
   plays_great: 'Jogou Muito',
   amazing_goal: 'Golaço',
   stylish: 'Tirou onda',
+};
+
+const reactionColors: Record<keyof typeof reactionIcons, string> = {
+  liked: '#0E7E3F',
+  beast: '#F4A261',
+  plays_great: '#008AEE',
+  amazing_goal: '#FF5126',
+  stylish: '#D17A22',
 };
 
 interface Props {
@@ -67,8 +74,6 @@ export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPres
     }
   }, [author, post.userId]);
 
-
-
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -76,7 +81,6 @@ export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPres
       useNativeDriver: true,
     }).start();
   }, [post._id, post.comments.length, JSON.stringify(post.reactions)]);
-
 
   useEffect(() => {
     Animated.timing(reactionAnim, {
@@ -89,7 +93,7 @@ export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPres
   useEffect(() => {
     if (showReactions) {
       const timeout = setTimeout(() => setShowReactions(false), 5000);
-      return () => clearTimeout(timeout); // limpa ao esconder
+      return () => clearTimeout(timeout);
     }
   }, [showReactions]);
 
@@ -124,9 +128,7 @@ export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPres
         <View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <Text style={[styles.author, { color: theme.black }]}>{author?.name || 'Usuário'}</Text>
-            <Text style={[styles.author, { color: theme.gray, fontSize: 12 }]}>
-              {`@${author?.username}` || ''}
-            </Text>
+            <Text style={[styles.author, { color: theme.gray, fontSize: 12 }]}>@{author?.username || ''}</Text>
           </View>
           <Text style={[styles.time, { color: theme.greenLight }]}>{timeAgo}</Text>
         </View>
@@ -182,13 +184,10 @@ export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPres
               style={{ alignItems: 'center', gap: 4 }}
             >
               <SvgCssUri uri={reactionIcons[key as keyof typeof reactionIcons]} width={32} height={32} />
-              <Text style={{ fontSize: 12, color: theme.black }}>
-                {reactionLabels[key as keyof typeof reactionIcons]}
-              </Text>
+              <Text style={{ fontSize: 12, color: theme.black }}>{reactionLabels[key as keyof typeof reactionIcons]}</Text>
             </TouchableOpacity>
           ))}
         </Animated.View>
-
       )}
 
       {/* Ações */}
@@ -198,14 +197,41 @@ export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPres
           onPress={() => setShowReactions((prev) => !prev)}
           style={styles.actionContainer}
         >
-          <SvgCssUri
-            uri={'https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/logos/like-icon.svg'}
-            width={24}
-            height={24}
-          />
-          <Text style={[styles.actionButton, { color: theme.greenLight }]}>Reagir</Text>
+          {(() => {
+            const userReaction = Object.entries(post.reactions).find(
+              ([_, userIds]) => userIds.includes(user?.id ?? -1),
+            )?.[0] as keyof typeof reactionIcons | undefined;
+
+            const reactionColor = userReaction ? reactionColors[userReaction] : theme.greenLight;
+
+            if (userReaction) {
+              return (
+                <>
+                  <SvgCssUri uri={reactionIcons[userReaction]} width={24} height={24} />
+                  <Text style={[styles.actionButton, { color: reactionColor }]}>
+                    {reactionLabels[userReaction]}
+                  </Text>
+                </>
+              );
+            }
+
+            return (
+              <>
+                <SvgCssUri
+                  uri={'https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/logos/like-icon.svg'}
+                  width={24}
+                  height={24}
+                />
+                <Text style={[styles.actionButton, { color: theme.greenLight }]}>Reagir</Text>
+              </>
+            );
+          })()}
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => onCommentPress?.(post._id)} style={styles.actionContainer}>
+
+        <TouchableOpacity
+          onPress={() => onCommentPress?.(post._id)}
+          style={styles.actionContainer}
+        >
           <SvgCssUri
             uri={'https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/logos/chat-icon.svg'}
             width={24}
@@ -214,6 +240,7 @@ export const ResenhaCard: React.FC<Props> = ({ post, onReactPress, onCommentPres
           <Text style={[styles.actionButton, { color: theme.greenLight }]}>Comentar</Text>
         </TouchableOpacity>
       </View>
+
       <ReactionsModal
         post={post}
         visible={showReactionsModal}

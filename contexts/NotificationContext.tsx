@@ -175,7 +175,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
         if (isMounted) dispatch({ type: 'LOAD', notifications: enriched });
       } catch (err: any) {
-        console.error('fetchNotifications error:', err);
+        console.warn('fetchNotifications error:', err);
         if (err.response?.status === 401) dispatch({ type: 'RESET' });
       }
     })();
