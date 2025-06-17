@@ -42,7 +42,6 @@ export default function Home() {
     nextMatch,
     scorers,
     standings,
-    polls,
     initialLoading,
     setLastMatch,
     setNextMatch,
@@ -52,7 +51,7 @@ export default function Home() {
     setInitialLoading,
   } = useHomeStore();
 
-  const { voteOnPoll, refetch: refetchPolls } = usePolls(user?.id);
+  const { polls, voteOnPoll, refetch: refetchPolls } = usePolls(user?.id);
 
   // Carrega preferências de tema
   useEffect(() => {

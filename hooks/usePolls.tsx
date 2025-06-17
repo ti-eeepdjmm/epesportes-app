@@ -97,7 +97,7 @@ export const usePolls = (userId?: number) => {
       setPolls(enrichedPolls);
       return enrichedPolls;
     } catch (error) {
-      Alert.alert('Erro ao carregar enquetes');
+      console.warn('Erro ao buscar enquetes:', error);
     } finally {
       setLoading(false);
     }
