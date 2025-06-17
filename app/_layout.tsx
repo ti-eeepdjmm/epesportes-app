@@ -21,6 +21,7 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 
 import api from '@/utils/api';
 import { getAccessToken, isUserRegistered, clearTokens } from '@/utils/storage';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export const unstable_settings = {
   initialRouteName: '(tabs)',
@@ -125,19 +126,21 @@ function RenderApp({ onLayout }: { onLayout: () => void }) {
   }, [url, router]);
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: theme }}
-      onLayout={onLayout}
-    >
-      <StatusBar style={theme === '#000' ? 'light' : 'dark'} />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: theme }}
+        onLayout={onLayout}
+      >
+        <StatusBar style={theme === '#000' ? 'light' : 'dark'} />
 
-      {/* Envolve os Providers aqui, mas renderiza o Slot sempre */}
-      <SocketProvider userId={user?.id ?? 0}>
-        <NotificationProvider>
-          <Slot />
-        </NotificationProvider>
-      </SocketProvider>
-    </SafeAreaView>
+        {/* Envolve os Providers aqui, mas renderiza o Slot sempre */}
+        <SocketProvider userId={user?.id ?? 0}>
+          <NotificationProvider>
+            <Slot />
+          </NotificationProvider>
+        </SocketProvider>
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }
 

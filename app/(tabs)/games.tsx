@@ -1,17 +1,14 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   ScrollView,
   View,
   StyleSheet,
   Text,
   TouchableOpacity,
-  Animated,
   RefreshControl,
-  PanResponder,
 } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { AppLoader } from '@/components/AppLoader';
-import { MatchCardSummary } from '@/components/matches/MatchCardSummary';
 import { TeamStandings } from '@/components/standings/TeamStandings';
 import { TopScorers } from '@/components/rankings/TopScorers';
 import { router, usePathname } from 'expo-router';
@@ -19,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useGamesStore } from '@/stores/useGamesStore';
 import { HomeHeader } from '@/components/HomeHeader';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { SwipeableMatchCard } from '@/components/matches/SwipeableMatchCard';
 
 export default function GamesScreen() {
   const theme = useTheme();
@@ -37,8 +35,6 @@ export default function GamesScreen() {
     setRoundIndex,
   } = useGamesStore();
 
-  const translateX = useRef(new Animated.Value(0)).current;
-
   const pathname = usePathname();
   const { setLastRoute } = useNotifications();
 
@@ -46,12 +42,14 @@ export default function GamesScreen() {
     loadAll();
   }, []);
 
-  const groupedMatches = matches.reduce((acc: any[][], match, index) => {
-    const groupIndex = Math.floor(index / 5);
-    if (!acc[groupIndex]) acc[groupIndex] = [];
-    acc[groupIndex].push(match);
-    return acc;
-  }, []);
+  const groupedMatches = useMemo(() => {
+    return matches.reduce((acc: any[][], match, index) => {
+      const groupIndex = Math.floor(index / 5);
+      if (!acc[groupIndex]) acc[groupIndex] = [];
+      acc[groupIndex].push(match);
+      return acc;
+    }, []);
+  }, [matches]);
 
   const currentRoundMatches = groupedMatches[currentRound] || [];
   const currentMatch = currentRoundMatches[currentMatchIndex];
@@ -60,54 +58,6 @@ export default function GamesScreen() {
   const isLastMatch =
     currentRound === groupedMatches.length - 1 &&
     currentMatchIndex === currentRoundMatches.length - 1;
-
-  const panResponder = useMemo(() => {
-    return PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
-      onPanResponderMove: (_, gestureState) => {
-        translateX.setValue(gestureState.dx);
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        const threshold = 80;
-
-        if (gestureState.dx < -threshold && !isLastMatch) {
-          Animated.timing(translateX, {
-            toValue: -300,
-            duration: 150,
-            useNativeDriver: true,
-          }).start(() => {
-            handleNext();
-            translateX.setValue(300);
-            Animated.timing(translateX, {
-              toValue: 0,
-              duration: 150,
-              useNativeDriver: true,
-            }).start();
-          });
-        } else if (gestureState.dx > threshold && !isFirstMatch) {
-          Animated.timing(translateX, {
-            toValue: 300,
-            duration: 150,
-            useNativeDriver: true,
-          }).start(() => {
-            handlePrev();
-            translateX.setValue(-300);
-            Animated.timing(translateX, {
-              toValue: 0,
-              duration: 150,
-              useNativeDriver: true,
-            }).start();
-          });
-        } else {
-          Animated.spring(translateX, {
-            toValue: 0,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    });
-  }, [currentMatchIndex, currentRound, isFirstMatch, isLastMatch]);
 
   if (initialLoading) {
     return (
@@ -139,6 +89,8 @@ export default function GamesScreen() {
           <TouchableOpacity
             onPress={() => setRoundIndex(currentRound - 1)}
             disabled={currentRound === 0}
+            accessible
+            accessibilityLabel="Rodada anterior"
           >
             <Ionicons
               name="arrow-back-circle-outline"
@@ -152,6 +104,8 @@ export default function GamesScreen() {
           <TouchableOpacity
             onPress={() => setRoundIndex(currentRound + 1)}
             disabled={currentRound === groupedMatches.length - 1}
+            accessible
+            accessibilityLabel="Próxima rodada"
           >
             <Ionicons
               name="arrow-forward-circle-outline"
@@ -167,41 +121,29 @@ export default function GamesScreen() {
 
         {currentMatch && (
           <View>
-            <Animated.View
-              {...panResponder.panHandlers}
-              style={{
-                transform: [{ translateX }],
+            <SwipeableMatchCard
+              match={currentMatch}
+              onPress={() => {
+                setLastRoute(pathname);
+                router.push(`/(modals)/matches/${currentMatch.id}`);
               }}
-            >
-              <MatchCardSummary
-                key={currentMatch.id}
-                match={currentMatch}
-                onPress={() => {
-                  setLastRoute(pathname);
-                  router.push(`/(modals)/matches/${currentMatch.id}`)
-                }}
-              />
-            </Animated.View>
+              onSwipeLeft={() => {
+                if (!isLastMatch) handleNext();
+              }}
+              onSwipeRight={() => {
+                if (!isFirstMatch) handlePrev();
+              }}
+              isFirst={isFirstMatch}
+              isLast={isLastMatch}
+            />
+
 
             <View style={styles(theme).navigationButtons}>
               <TouchableOpacity
-                onPress={() => {
-                  if (isFirstMatch) return;
-                  Animated.timing(translateX, {
-                    toValue: 300,
-                    duration: 150,
-                    useNativeDriver: true,
-                  }).start(() => {
-                    handlePrev();
-                    translateX.setValue(-300);
-                    Animated.timing(translateX, {
-                      toValue: 0,
-                      duration: 150,
-                      useNativeDriver: true,
-                    }).start();
-                  });
-                }}
+                onPress={() => !isFirstMatch && handlePrev()}
                 disabled={isFirstMatch}
+                accessible
+                accessibilityLabel="Partida anterior"
               >
                 <Ionicons
                   name="chevron-back-circle"
@@ -210,28 +152,19 @@ export default function GamesScreen() {
                 />
               </TouchableOpacity>
 
-              <Text style={styles(theme).matchNumber}>
+              <Text
+                style={styles(theme).matchNumber}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
                 Partida {currentMatchIndex + 1} de {currentRoundMatches.length}
               </Text>
 
               <TouchableOpacity
-                onPress={() => {
-                  if (isLastMatch) return;
-                  Animated.timing(translateX, {
-                    toValue: -300,
-                    duration: 150,
-                    useNativeDriver: true,
-                  }).start(() => {
-                    handleNext();
-                    translateX.setValue(300);
-                    Animated.timing(translateX, {
-                      toValue: 0,
-                      duration: 150,
-                      useNativeDriver: true,
-                    }).start();
-                  });
-                }}
+                onPress={() => !isLastMatch && handleNext()}
                 disabled={isLastMatch}
+                accessible
+                accessibilityLabel="Próxima partida"
               >
                 <Ionicons
                   name="chevron-forward-circle"
@@ -245,59 +178,62 @@ export default function GamesScreen() {
       </View>
 
       <Text style={styles(theme).sectionTitle}>Classificação</Text>
-      <TeamStandings data={standings} full={true} />
+      <TeamStandings data={standings} full />
 
       <Text style={styles(theme).sectionTitle}>Artilharia</Text>
-      <TopScorers data={scorers} full={true} />
+      <TopScorers data={scorers} full />
     </ScrollView>
   );
 }
 
-const styles = (theme: any) => StyleSheet.create({
-  container: {
-    backgroundColor: theme.white,
-  },
-  contentContainer: {
-    flexGrow: 1,
-    padding: 16,
-  },
-  loader: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: theme.white,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.black,
-    marginBottom: 8,
-  },
-  roundContainer: {
-    marginBottom: 24,
-  },
-  roundNavigation: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    paddingHorizontal: 16,
-  },
-  roundLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.greenLight,
-  },
-  navigationButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 12,
-    paddingHorizontal: 16,
-  },
-  matchNumber: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: theme.black,
-  },
-});
+const styles = (theme: any) =>
+  StyleSheet.create({
+    container: {
+      backgroundColor: theme.white,
+    },
+    contentContainer: {
+      flexGrow: 1,
+      padding: 16,
+    },
+    loader: {
+      ...StyleSheet.absoluteFillObject,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.white,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.black,
+      marginBottom: 8,
+    },
+    roundContainer: {
+      marginBottom: 24,
+    },
+    roundNavigation: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+      paddingHorizontal: 16,
+    },
+    roundLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.greenLight,
+    },
+    navigationButtons: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 12,
+      paddingHorizontal: 16,
+    },
+    matchNumber: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.black,
+      maxWidth: 180,
+      textAlign: 'center',
+    },
+  });
