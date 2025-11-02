@@ -8,8 +8,9 @@ import { InputField } from '@/components/forms/InputField';
 import { Button } from '@/components/forms/Button';
 import { ComboBoxField as SelectField } from '@/components/forms/ComboBoxField';
 import { useTheme } from '@/hooks/useTheme';
-import { Game, Player, Team, User } from '@/types';
+import { Player, User } from '@/types';
 import api from '@/utils/api';
+import { useAthleteStore } from '@/stores/useAthleteStore';
 
 const individualGames = ['tênis de mesa', 'xadrez'];
 
@@ -17,7 +18,8 @@ const positionsBySport: Record<string, { label: string; value: string }[]> = {
   futsal: [
     { label: 'Goleiro', value: 'goleiro' },
     { label: 'Fixo', value: 'fixo' },
-    { label: 'Ala', value: 'ala' },
+    { label: 'Ala Esquerda', value: 'alaEsquerda' },
+    { label: 'Ala Direita', value: 'alaDireita' },
     { label: 'Pivô', value: 'pivo' },
   ],
   vôlei: [
@@ -35,8 +37,6 @@ const positionsBySport: Record<string, { label: string; value: string }[]> = {
   ],
 };
 
-
-
 export default function EditProfileForm({
   user,
   onSave,
@@ -51,60 +51,50 @@ export default function EditProfileForm({
   setIsEditing: (val: boolean) => void;
 }) {
   const theme = useTheme();
-  const [games, setGames] = useState<{ label: string; value: string }[]>([]);
-  const [teams, setTeams] = useState<{ label: string; value: string }[]>([]);
-  const [playerData, setPlayerData] = useState<Player | null>(null);
   const [selectedGameLabel, setSelectedGameLabel] = useState('');
   const [formLoading, setFormLoading] = useState(false);
 
-  // Validação de username: mínimo 3 caracteres; apenas letras, números e underscore
-const schema = z
-.object({
-  username: z
-    .string()
-    .min(3, 'Username deve ter ao menos 3 caracteres')
-    .regex(/^[a-z0-9_.]+$/, 'Use apenas letras minúsculas, números, underscore ou ponto')
-    .refine(async (username) => {
-      // Checar se o username já existe
-      try{
-        const res = await api.get<{ available: boolean }>(`/users/check-username/${username}`);
-        return res.data.available === true
-      }catch(err){
-        if(user.username === username){
-          return true
-        }else{
-          return false
+  const { games, teams, player, loadData } = useAthleteStore();
+
+  const schema = z
+    .object({
+      username: z
+        .string()
+        .min(3, 'Username deve ter ao menos 3 caracteres')
+        .regex(/^[a-z0-9_.]+$/, 'Use apenas letras minúsculas, números, underscore ou ponto')
+        .refine(async (username) => {
+          try {
+            const res = await api.get<{ available: boolean }>(`/users/check-username/${username}`);
+            return res.data.available === true;
+          } catch (err) {
+            return user.username === username;
+          }
+        }, 'Usename não disponível'),
+      name: z.string().min(3, 'Nome deve ter pelo menos 3 letras'),
+      favoriteTeam: z.string().min(1, 'Informe um time válido'),
+      gameId: z.string().optional(),
+      position: z.string().optional(),
+      jerseyNumber: z.string().optional(),
+    })
+    .superRefine((data, ctx) => {
+      const isCollective = ['futsal', 'handebol', 'vôlei'].includes(selectedGameLabel);
+      if (isCollective) {
+        if (!data.position) {
+          ctx.addIssue({
+            path: ['position'],
+            code: z.ZodIssueCode.custom,
+            message: 'Escolha uma posição',
+          });
         }
-       
+        if (!data.jerseyNumber) {
+          ctx.addIssue({
+            path: ['jerseyNumber'],
+            code: z.ZodIssueCode.custom,
+            message: 'Informe o número da camisa',
+          });
+        }
       }
-    }, 'Usename não disponível'),
-  name: z.string().min(3, 'Nome deve ter pelo menos 3 letras'),
-  favoriteTeam: z.string().min(1, 'Informe um time válido'),
-  gameId: z.string().optional(),
-  position: z.string().optional(),
-  jerseyNumber: z.string().optional(),
-})
-.superRefine((data, ctx) => {
-  const isCollective = ['futsal', 'handebol', 'vôlei'].includes(
-    selectedGameLabel
-  );
-  if (isCollective) {
-    if (!data.position) {
-      ctx.addIssue({
-        path: ['position'],
-        code: z.ZodIssueCode.custom,
-        message: 'Escolha uma posição',
-      });
-    }
-    if (!data.jerseyNumber) {
-      ctx.addIssue({
-        path: ['jerseyNumber'],
-        code: z.ZodIssueCode.custom,
-        message: 'Informe o número da camisa',
-      });
-    }
-  }
-});
+    });
 
   const {
     control,
@@ -113,7 +103,6 @@ const schema = z
     setValue,
     reset,
     clearErrors,
-    setError,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
@@ -129,12 +118,8 @@ const schema = z
 
   const watchedGameId = watch('gameId');
 
-  // Função para salvar dados no backend após validação
   const handleSave = async (data: any) => {
-    const selectedTeam = teams.find(
-      t => t.value === data.favoriteTeam
-    );
-
+    const selectedTeam = teams.find(t => t.value === data.favoriteTeam);
     if (!selectedTeam) return;
 
     const updatedData = {
@@ -149,56 +134,23 @@ const schema = z
     setIsEditing(false);
   };
 
-  // Tratativa ao pressionar salvar: validação de schema + checagem de disponibilidade no backend
-  const onPressSave = handleSubmit(
-    async data => {
-      setFormLoading(true);
-      try {
-        await handleSave(data);
-      } catch (err) {
-        console.error('Erro ao verificar username', err);
-      } finally {
-        setFormLoading(false);
-      }
-    },
-    () => {
-      // mantém isEditing === true para que o usuário corrija
+  const onPressSave = handleSubmit(async data => {
+    setFormLoading(true);
+    try {
+      await handleSave(data);
+    } catch (err) {
+      console.error('Erro ao verificar username', err);
+    } finally {
+      setFormLoading(false);
     }
-  );
+  });
 
-  // Carrega dados iniciais de games, teams e player
   useEffect(() => {
-    async function loadData() {
-      try {
-        setFormLoading(true);
-        const [gamesRes, teamsRes] = await Promise.all([
-          api.get<Game[]>('/games'),
-          api.get<Team[]>('/teams'),
-        ]);
-
-        setGames(
-          gamesRes.data.map(g => ({ label: g.name, value: String(g.id) }))
-        );
-        setTeams(
-          teamsRes.data.map(t => ({ label: t.name, value: String(t.id) }))
-        );
-
-        if (user.isAthlete) {
-          const playerRes = await api.get<Player>(
-            `/players/user/${user.id}`
-          );
-          setPlayerData(playerRes.data);
-        }
-      } catch (err) {
-        console.error('Erro ao carregar dados iniciais', err);
-      } finally {
-        setFormLoading(false);
-      }
+    if (!games.length || !teams.length || (user.isAthlete && !player)) {
+      loadData(user.id, user.isAthlete);
     }
-    loadData();
-  }, [user]);
+  }, [user.id]);
 
-  // Atualiza seleção de modalidade e limpa erros quando começar a editar
   useEffect(() => {
     const selectedGame = games.find(g => g.value === watchedGameId);
     const label = selectedGame?.label.toLowerCase() || '';
@@ -211,17 +163,16 @@ const schema = z
     }
   }, [watchedGameId]);
 
-  // Ao receber dados, reseta valores do form
   useEffect(() => {
-    if (!formLoading && games.length && teams.length) {
-      if (user.isAthlete && playerData) {
+    if (games.length && teams.length) {
+      if (user.isAthlete && player) {
         reset({
           username: user.username || '',
           name: user.name,
           favoriteTeam: user.favoriteTeam?.id.toString() || '',
-          jerseyNumber: playerData.jerseyNumber?.toString() || '',
-          gameId: playerData.game?.id.toString() || '',
-          position: playerData.position || '',
+          jerseyNumber: player.jerseyNumber?.toString() || '',
+          gameId: player.game?.id.toString() || '',
+          position: player.position || '',
         });
       } else {
         reset({
@@ -234,66 +185,25 @@ const schema = z
         });
       }
     }
-  }, [games, teams, playerData]);
+  }, [games, teams, player, user]);
 
   const isIndividual = individualGames.includes(selectedGameLabel);
   const positionOptions = positionsBySport[selectedGameLabel] || [];
 
   return (
     <View style={styles(theme).form}>
-      <InputField
-        name="username"
-        label="@username"
-        placeholder="Escolha seu nome de usuário"
-        control={control}
-        disabled={!isEditing}
-      />
-
-      <InputField
-        name="name"
-        label="Nome"
-        placeholder="Nome do Usuário"
-        control={control}
-        disabled={!isEditing}
-      />
-
-      <SelectField
-        name="favoriteTeam"
-        label="Time favorito"
-        control={control}
-        disabled={!isEditing}
-        options={teams}
-      />
+      <InputField name="username" label="@username" placeholder="Escolha seu nome de usuário" control={control} disabled={!isEditing} />
+      <InputField name="name" label="Nome" placeholder="Nome do Usuário" control={control} disabled={!isEditing} />
+      <SelectField name="favoriteTeam" label="Time favorito" control={control} disabled={!isEditing} options={teams} />
 
       {user.isAthlete && (
         <View style={{ marginTop: 16 }}>
-          <StyledText style={styles(theme).sectionTitle}>
-            Dados de Atleta
-          </StyledText>
-          <SelectField
-            name="gameId"
-            label="Modalidade"
-            control={control}
-            options={games}
-            disabled={!isEditing}
-          />
+          <StyledText style={styles(theme).sectionTitle}>Dados de Atleta</StyledText>
+          <SelectField name="gameId" label="Modalidade" control={control} options={games} disabled={!isEditing} />
           {!isIndividual && watchedGameId && (
             <>
-              <SelectField
-                name="position"
-                label="Posição"
-                control={control}
-                disabled={!isEditing}
-                options={positionOptions}
-              />
-              <InputField
-                name="jerseyNumber"
-                label="Número da camisa"
-                placeholder="Ex: 10"
-                control={control}
-                keyboardType="numeric"
-                disabled={!isEditing}
-              />
+              <SelectField name="position" label="Posição" control={control} disabled={!isEditing} options={positionOptions} />
+              <InputField name="jerseyNumber" label="Número da camisa" placeholder="Ex: 10" control={control} keyboardType="numeric" disabled={!isEditing} />
             </>
           )}
         </View>
@@ -301,38 +211,13 @@ const schema = z
 
       {isEditing ? (
         <View style={styles(theme).buttonGroup}>
-          <Button
-            title="Salvar"
-            onPress={onPressSave}
-            disabled={formLoading}
-          />
-          <Button
-            title="Cancelar"
-            onPress={() => {
-              setIsEditing(false);
-              if (playerData) {
-                reset({
-                  username: user.username || '',
-                  name: user.name,
-                  favoriteTeam: user.favoriteTeam?.id.toString() || '',
-                  position: playerData.position || '',
-                  jerseyNumber: playerData.jerseyNumber?.toString() || '',
-                  gameId: playerData.game?.id.toString() || '',
-                });
-              }
-            }}
-          />
+          <Button title="Salvar" onPress={onPressSave} disabled={formLoading} />
+          <Button title="Cancelar" onPress={onCancel} />
         </View>
       ) : (
         <StyledText
-          style={{
-            marginTop: 12,
-            color: theme.greenLight,
-            fontFamily: 'Poppins_600SemiBold',
-            fontSize: 16,
-          }}
-          onPress={() => setIsEditing(true)}
-        >
+          style={{ marginTop: 12, color: theme.greenLight, fontFamily: 'Poppins_600SemiBold', fontSize: 16 }}
+          onPress={() => setIsEditing(true)}>
           {"Editar Informações"}
         </StyledText>
       )}

@@ -1,23 +1,24 @@
 // app/notifications.tsx
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
   SectionList,
   StyleSheet,
-  TouchableOpacity
+  TouchableOpacity,
+  BackHandler
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { NotificationItem } from '../components/notifications/NotificationItem';
-import { useNotifications } from '../contexts/NotificationContext';
-import { Notification } from '../types/notification';
+import { RelativePathString, useFocusEffect, useRouter } from 'expo-router';
+import { NotificationItem } from '../../components/notifications/NotificationItem';
+import { useNotifications } from '../../contexts/NotificationContext';
+import { Notification } from '../../types/notification';
 import { useTheme } from '@/hooks/useTheme';
 
 export default function NotificationsModal() {
   const router = useRouter();
-  const { state, markAllRead } = useNotifications();
+  const { state, markAllRead, lastRoute, setLastRoute } = useNotifications();
   const theme = useTheme();
 
   // Ordena por data decrescente
@@ -47,8 +48,30 @@ export default function NotificationsModal() {
     .filter(section => section.data.length > 0);
 
   const handleBack = () => {
-    router.back();
+    if (lastRoute && lastRoute !== '/') {
+      router.replace(lastRoute as RelativePathString); // volta para a tela anterior
+    } else {
+      router.dismiss(); // fallback
+    }
   };
+
+  // ⬇️ Captura o botão físico de voltar
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (lastRoute && lastRoute !== '/') {
+          router.replace(lastRoute as RelativePathString); // volta para a tela anterior
+          setLastRoute(null); // limpa após uso
+          return true; // indica que lidamos com o evento
+        }
+        router.dismiss();
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [lastRoute])
+  );
 
   const handleMarkAllRead = () => {
     markAllRead();

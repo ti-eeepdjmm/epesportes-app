@@ -8,13 +8,9 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import {
-  Platform,
-  KeyboardAvoidingView,
-  SafeAreaView,
   StyleSheet,
   ScrollView,
 } from 'react-native';
-import { SignUpProvider } from '@/contexts/SignUpContext'; // 👈 IMPORTANTE
 import { StatusBar } from 'expo-status-bar';
 import { useTheme } from '@/hooks/useTheme';
 

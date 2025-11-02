@@ -1,7 +1,7 @@
 // src/components/HomeHeader.tsx
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Image, TextInput, TouchableOpacity, Text } from 'react-native';
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import BellIcon from './icons/BellIcon';
@@ -13,6 +13,9 @@ export function HomeHeader() {
   const { user } = useAuth();
   const { state, dispatch } = useNotifications();
   const [notifications, setNotifications] = useState(0)
+
+  const pathname = usePathname();
+  const { setLastRoute } = useNotifications();
 
   // Calcula quantas notificações não lidas existem
   useEffect(() => {
@@ -47,7 +50,8 @@ export function HomeHeader() {
           // Marca todas como lidas
           dispatch({ type: 'MARK_ALL_READ' });
           // Navega para a tela de notificações
-          router.push('/notifications');
+          setLastRoute(pathname);
+          router.navigate('/(modals)/notifications');
         }}
       >
         <BellIcon size={32} color={theme.greenLight} />

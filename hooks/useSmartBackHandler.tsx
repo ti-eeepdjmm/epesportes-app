@@ -1,28 +1,35 @@
-import { useEffect } from 'react';
-import { BackHandler, Alert } from 'react-native';
-import { useRouter, useSegments } from 'expo-router';
+import { Alert, BackHandler } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { usePathname } from 'expo-router';
+import { useCallback } from 'react';
 
 export function useSmartBackHandler() {
-  const router = useRouter();
-  const segments = useSegments();
+  const pathname = usePathname();
 
-  const isOnHome = !segments[1]; 
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        const isInHomeTab =
+          pathname === '/' || pathname === '/(tabs)';
 
-  useEffect(() => {
-    const onBackPress = () => {
-      if (!isOnHome) {
-        router.replace('/(tabs)');
-        return true;
-      }
+        if (isInHomeTab) {
+          Alert.alert('Sair do App', 'Deseja sair?', [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Sair', onPress: () => BackHandler.exitApp() },
+          ]);
+          return true;
+        }else{
+          // Permite comportamento normal de voltar
+          return false;
+        }
+      };
 
-      Alert.alert('Sair do App', 'Deseja sair?', [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Sair', onPress: () => BackHandler.exitApp() },
-      ]);
-      return true;
-    };
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onBackPress
+      );
 
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-    return () => backHandler.remove();
-  }, [isOnHome]);
+      return () => subscription.remove();
+    }, [pathname])
+  );
 }

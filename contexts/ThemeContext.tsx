@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Appearance } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type ThemeType = 'light' | 'dark';
+export type ThemeType = 'light' | 'dark';
 
 interface ThemeContextProps {
   theme: ThemeType;

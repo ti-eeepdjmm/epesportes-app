@@ -21,7 +21,7 @@
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-community/datetimepicker": "8.2.0",
     "@react-navigation/bottom-tabs": "^7.2.0",
-    "@react-navigation/native": "^7.0.14",
+    "@react-navigation/native": "^7.1.10",
     "@react-navigation/native-stack": "^7.2.0",
     "@supabase/supabase-js": "^2.49.4",
     "axios": "^1.8.4",
@@ -58,7 +58,8 @@
     "react-native-webview": "13.12.5",
     "socket.io-client": "^4.8.1",
     "supabase": "^2.20.5",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

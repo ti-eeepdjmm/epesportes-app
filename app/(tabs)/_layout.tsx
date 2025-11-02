@@ -4,12 +4,12 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar';
 import { TabIcon } from '@/components/icons/TabIcon';
 import { useTheme } from '@/hooks/useTheme';
+import { useSmartBackHandler } from '@/hooks/useSmartBackHandler';
 
 export default function TabLayout(): JSX.Element {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-
-  
+  useSmartBackHandler();
 
   const screenOptions = {
     headerShown: false,
@@ -26,16 +26,21 @@ export default function TabLayout(): JSX.Element {
       fontSize: 12,
       fontFamily: 'Poppins_400Regular',
     },
+     unmountOnBlur: false, // <--- impede o recarregamento ao voltar
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.white }}>
       <StatusBar style={'dark'} />
-      <Tabs screenOptions={screenOptions}>
+      <Tabs 
+        initialRouteName="index"
+        screenOptions={screenOptions}
+      >
         <Tabs.Screen
           name="index"
           options={{
             title: 'Início',
+            unmountOnBlur: false, // impede que a tela seja desmontada ao sair dela
             tabBarIcon: ({ focused }: any) => (
               <TabIcon name="home" focused={focused} />
             ),
@@ -45,6 +50,7 @@ export default function TabLayout(): JSX.Element {
           name="games"
           options={{
             title: 'Jogos',
+            unmountOnBlur: false, // impede que a tela seja desmontada ao sair dela
             tabBarIcon: ({ focused }: any) => (
               <TabIcon name="games" focused={focused} />
             ),
@@ -54,6 +60,7 @@ export default function TabLayout(): JSX.Element {
           name="resenha"
           options={{
             title: 'Resenha',
+            unmountOnBlur: false, // impede que a tela seja desmontada ao sair dela
             tabBarIcon: ({ focused }: any) => (
               <TabIcon name="resenha" focused={focused} />
             ),
@@ -63,6 +70,7 @@ export default function TabLayout(): JSX.Element {
           name="profile"
           options={{
             title: 'Perfil',
+            unmountOnBlur: false, // impede que a tela seja desmontada ao sair dela
             tabBarIcon: ({ focused }: any) => (
               <TabIcon name="profile" focused={focused} />
             ),

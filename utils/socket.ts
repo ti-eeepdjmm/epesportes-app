@@ -1,7 +1,7 @@
 // src/services/socket.ts
 import { io, Socket } from 'socket.io-client';
 
-export const createSocketConnection = (userId: string): Socket => {
+export const createSocketConnection = (userId: number): Socket => {
   const socket = io(process.env.EXPO_PUBLIC_API_URL, {
     transports: ['websocket'],
   });

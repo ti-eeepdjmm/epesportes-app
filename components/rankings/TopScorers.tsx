@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -7,55 +7,28 @@ import {
   Image,
 } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
-import api from '@/utils/api';
 import { router } from 'expo-router';
 import { SvgCssUri } from 'react-native-svg/css';
-import { PlayerRankingItem, PlayerResolved } from '@/types/player';
+import { PlayerResolved } from '@/types/player';
 
+interface Props {
+  full?: boolean;
+  data: PlayerResolved[];
+}
 
-
-export const TopScorersPreview = () => {
+export const TopScorers: React.FC<Props> = ({
+  full = false,
+  data,
+}) => {
   const theme = useTheme();
-  const [players, setPlayers] = useState<PlayerResolved[]>([]);
 
-  useEffect(() => {
-    loadRanking();
-  }, []);
-
-  const loadRanking = async () => {
-    try {
-      const { data } = await api.get<PlayerRankingItem[]>('/rankings/goals');
-      const topPlayers = data.slice(0, 3);
-
-      const resolvedPlayers = await Promise.all(
-        topPlayers.map(async (item) => {
-          const res = await api.get(`/players/${item.player.id}`);
-          const player = res.data;
-
-          return {
-            id: player.id,
-            name: player.user.name,
-            photo: player.user.profilePhoto || `https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/avatars/default-avatar.png`,
-            team: {
-              name: player.team.name,
-              logo: player.team.logo,
-            },
-            goals: item.goals,
-          };
-        })
-      );
-
-      setPlayers(resolvedPlayers);
-    } catch (error) {
-      console.error('Erro ao buscar artilharia:', error);
-    }
-  };
+  const players = full ? data : data.slice(0, 3);
 
   return (
     <View style={[styles.container, styles.boxShadow, { backgroundColor: theme.white, borderColor: theme.grayLight }]}>
       <Text style={[styles.title, { color: theme.black }]}>Artilharia</Text>
 
-      <View style={[styles.header, {borderColor: theme.grayDetail}]}>
+      <View style={[styles.header, { borderColor: theme.grayDetail }]}>
         <Text style={[styles.headerLeft, { color: theme.black }]}>Jogador</Text>
         <Text style={[styles.headerRight, { color: theme.black }]}>Gols</Text>
       </View>
@@ -79,10 +52,12 @@ export const TopScorersPreview = () => {
         </View>
       ))}
 
-      <TouchableOpacity onPress={() => router.push('/(tabs)/games')}>
-        <Text style={[styles.buttonText, { color: theme.greenLight }]}>Ver lista completa</Text>
-        <Text style={[styles.arrowDown, { color: theme.greenLight }]}>▼</Text>
-      </TouchableOpacity>
+      {!full && (
+        <TouchableOpacity onPress={() => router.push('/(tabs)/games')}>
+          <Text style={[styles.buttonText, { color: theme.greenLight }]}>Ver lista completa</Text>
+          <Text style={[styles.arrowDown, { color: theme.greenLight }]}>▼</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

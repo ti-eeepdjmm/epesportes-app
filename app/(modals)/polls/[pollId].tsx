@@ -7,7 +7,6 @@ import {
     Text,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import api from '@/utils/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
 import { AppLoader } from '@/components/AppLoader';
@@ -15,6 +14,8 @@ import { PollCard } from '@/components/polls/PollCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { Poll, User, Team } from '@/types';
 import { usePolls } from '@/hooks/usePolls';
+
+
 
 export default function PollScreen() {
     const { pollId } = useLocalSearchParams<{ pollId: string }>();
@@ -24,7 +25,7 @@ export default function PollScreen() {
     const { polls, loading: pollLoading, voteOnPoll } = usePolls(user?.id || null);
 
 
-    const handleBack = () => router.back();
+    const handleBack = () => router.dismiss();
 
     if (pollLoading) {
         return (

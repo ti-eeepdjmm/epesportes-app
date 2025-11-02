@@ -53,12 +53,12 @@ export default function OnboardNext() {
           <PrimaryButton
             title="Criar Conta"
             onPress={() => router.push('/(auth)/signup-start')}
-            style={{ width: 200, marginTop: 12 }}
+            style={{ width: 256, marginTop: 12 }}
           />
           <PrimaryButton
             title="Já Tenho Conta"
             onPress={() => router.push('/(auth)/login')}
-            style={{ width: 200, marginTop: 12 }}
+            style={{ width: 256, marginTop: 12 }}
           />
         </Animated.View>
         <Logo styles={{ position: 'absolute', bottom: 24 }} />

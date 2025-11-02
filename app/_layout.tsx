@@ -21,6 +21,16 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 
 import api from '@/utils/api';
 import { getAccessToken, isUserRegistered, clearTokens } from '@/utils/storage';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+export const unstable_settings = {
+  initialRouteName: '(tabs)',
+  modalRoutes: [
+    '(modals)/notifications',
+    '(modals)/polls/[pollId]',
+    '(modals)/matches/[matchId]',
+  ],
+};
 
 WebBrowser.maybeCompleteAuthSession();
 SplashScreen.preventAutoHideAsync().catch(console.warn);
@@ -116,16 +126,22 @@ function RenderApp({ onLayout }: { onLayout: () => void }) {
   }, [url, router]);
 
   return (
-    <SocketProvider userId={user?.authUserId ?? ''}>
-      <NotificationProvider>
-        <SafeAreaView
-          style={{ flex: 1, backgroundColor: theme }}
-          onLayout={onLayout}
-        >
-          <StatusBar style={theme === '#000' ? 'light' : 'dark'} />
-          <Slot />
-        </SafeAreaView>
-      </NotificationProvider>
-    </SocketProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: theme }}
+        onLayout={onLayout}
+      >
+        <StatusBar style={theme === '#000' ? 'light' : 'dark'} />
+
+        {/* Envolve os Providers aqui, mas renderiza o Slot sempre */}
+        <SocketProvider userId={user?.id ?? 0}>
+          <NotificationProvider>
+            <Slot />
+          </NotificationProvider>
+        </SocketProvider>
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }
+
+
