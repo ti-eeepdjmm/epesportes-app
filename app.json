@@ -30,7 +30,9 @@
       "package": "com.epdjmm.epesportes",
       "permissions": [
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+      "compileSdkVersion": 35,
+      "targetSdkVersion": "auto"
     },
     "web": {
       "bundler": "metro",
