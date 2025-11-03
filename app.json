@@ -30,9 +30,7 @@
       "package": "com.epdjmm.epesportes",
       "permissions": [
         "android.permission.RECORD_AUDIO"
-      ],
-      "compileSdkVersion": 35,
-      "targetSdkVersion": "auto"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -59,8 +57,21 @@
         {
           "photosPermission": "The app accesses your photos to let you share them with your friends."
         }
-      ],
-      "expo-font"
+      ],  
+      "expo-font",
+       [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
