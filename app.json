@@ -80,7 +80,6 @@
       "router": {
         "origin": false
       },
-      "API_URL": "https://epesportes-api-production.up.railway.app/",
       "eas": {
         "projectId": "86d8633b-e06c-4fe9-9c93-5af8869057ec"
       }
