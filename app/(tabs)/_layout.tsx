@@ -1,7 +1,7 @@
 // app/(tabs)/_layout.tsx
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { TabIcon } from '@/components/icons/TabIcon';
@@ -18,37 +18,37 @@ export default function TabLayout(): JSX.Element {
   return (
     <>
       <StatusBar style="dark" />
-      {/* Protege só o topo; a área inferior é da Tab Bar */}
-      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: theme.white }}>
-        <Tabs
-          initialRouteName="index"
-          screenOptions={{
-            headerShown: false,
-            tabBarActiveTintColor: '#fff',
-            tabBarInactiveTintColor: '#fff',
-            tabBarHideOnKeyboard: true,
+      <Tabs
+        initialRouteName="index"
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: '#fff',
+          tabBarInactiveTintColor: '#fff',
+          tabBarHideOnKeyboard: true,
 
-            // ⚠️ Altura final considera o bottom inset
-            tabBarStyle: {
-              backgroundColor: theme.greenBackground,
-              borderTopColor: theme.white,
-              height: 64 + bottom,     // altura mais compacta que 72
-              paddingTop: 8,
-              paddingBottom: bottom,    // respeita o notch/gesture area
-            },
+          // Altura fixa + padding dinâmico (NÃO soma bottom duas vezes)
+          tabBarStyle: {
+            backgroundColor: theme.greenBackground,
+            borderTopColor: theme.white,
+            height: 64,              // altura fixa da tab bar
+            paddingTop: 8,
+            paddingBottom: Math.max(bottom, 8),  // respeita o notch/gesture area (mínimo 8)
+          },
 
-            tabBarLabelStyle: {
-              fontSize: 12,
-              fontFamily: 'Poppins_400Regular',
-            },
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontFamily: 'Poppins_400Regular',
+          },
 
-            // Mantém o estado das telas
-            unmountOnBlur: false,
+          // Mantém o estado das telas
+          unmountOnBlur: false,
 
-            // Cor de fundo das cenas (em vez de SafeAreaView envolvendo Tabs)
-            sceneStyle: { backgroundColor: theme.white },
-          }}
-        >
+          // Cor de fundo das cenas + SafeArea aplicada nas telas
+          sceneStyle: { 
+            backgroundColor: theme.white,
+          },
+        }}
+      >
           <Tabs.Screen
             name="index"
             options={{
@@ -90,7 +90,6 @@ export default function TabLayout(): JSX.Element {
             }}
           />
         </Tabs>
-      </SafeAreaView>
-    </>
-  );
-}
+      </>
+    );
+  }
