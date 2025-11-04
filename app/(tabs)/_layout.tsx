@@ -31,7 +31,7 @@ export default function TabLayout(): JSX.Element {
           tabBarStyle: {
             backgroundColor: theme.greenBackground,
             borderTopColor: theme.white,
-            height: 72 + Math.max(bottom, 0), // aumenta altura total da tab bar
+            height: 72, // aumenta altura total da tab bar
             paddingTop: 8,
             paddingBottom: Math.max(bottom, 8),  // respeita o notch/gesture area (mínimo 8)
           },
@@ -39,7 +39,6 @@ export default function TabLayout(): JSX.Element {
           tabBarLabelStyle: {
             fontSize: 12,
             fontFamily: 'Poppins_400Regular',
-            marginTop: -2, // ajusta espaçamento entre ícone e texto
           },
 
           // Mantém o estado das telas
