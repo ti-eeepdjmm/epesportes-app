@@ -29,6 +29,7 @@
       },
       "package": "com.epdjmm.epesportes",
       "permissions": [
+        "android.permission.RECORD_AUDIO",
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -57,9 +58,9 @@
         {
           "photosPermission": "The app accesses your photos to let you share them with your friends."
         }
-      ],  
+      ],
       "expo-font",
-       [
+      [
         "expo-build-properties",
         {
           "android": {
@@ -84,6 +85,12 @@
         "projectId": "86d8633b-e06c-4fe9-9c93-5af8869057ec"
       }
     },
-    "owner": "epdjmm"
+    "owner": "epdjmm",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/86d8633b-e06c-4fe9-9c93-5af8869057ec"
+    }
   }
 }
