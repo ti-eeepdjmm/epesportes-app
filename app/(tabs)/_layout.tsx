@@ -25,12 +25,13 @@ export default function TabLayout(): JSX.Element {
           tabBarActiveTintColor: '#fff',
           tabBarInactiveTintColor: '#fff',
           tabBarHideOnKeyboard: true,
+          tabBarShowLabel: true, // força exibição dos labels
 
           // Altura fixa + padding dinâmico (NÃO soma bottom duas vezes)
           tabBarStyle: {
             backgroundColor: theme.greenBackground,
             borderTopColor: theme.white,
-            height: 64,              // altura fixa da tab bar
+            height: 72 + Math.max(bottom, 0), // aumenta altura total da tab bar
             paddingTop: 8,
             paddingBottom: Math.max(bottom, 8),  // respeita o notch/gesture area (mínimo 8)
           },
@@ -38,6 +39,7 @@ export default function TabLayout(): JSX.Element {
           tabBarLabelStyle: {
             fontSize: 12,
             fontFamily: 'Poppins_400Regular',
+            marginTop: -2, // ajusta espaçamento entre ícone e texto
           },
 
           // Mantém o estado das telas

@@ -10,8 +10,9 @@ import Animated, {
 import {
   StyleSheet,
   ScrollView,
+  StatusBar
 } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+
 import { useTheme } from '@/hooks/useTheme';
 
 export default function OnboardLayout() {
@@ -33,7 +34,7 @@ export default function OnboardLayout() {
           >
             <Animated.View style={[styles.flex, fadeStyle]}>
               <Slot />
-              <StatusBar style="light" backgroundColor={theme.greenLight} />
+              <StatusBar barStyle="light-content" backgroundColor={theme.greenLight} />
             </Animated.View>
           </ScrollView>
   );
