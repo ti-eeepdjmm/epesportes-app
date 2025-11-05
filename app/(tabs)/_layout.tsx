@@ -27,13 +27,11 @@ export default function TabLayout(): JSX.Element {
           tabBarHideOnKeyboard: true,
           tabBarShowLabel: true, // força exibição dos labels
 
-          // Altura fixa + padding dinâmico (NÃO soma bottom duas vezes)
           tabBarStyle: {
             backgroundColor: theme.greenBackground,
             borderTopColor: theme.white,
-            height: 72, // aumenta altura total da tab bar
             paddingTop: 8,
-            paddingBottom: Math.max(bottom, 8),  // respeita o notch/gesture area (mínimo 8)
+            height: 64 + bottom,
           },
 
           tabBarLabelStyle: {
@@ -45,52 +43,52 @@ export default function TabLayout(): JSX.Element {
           unmountOnBlur: false,
 
           // Cor de fundo das cenas + SafeArea aplicada nas telas
-          sceneStyle: { 
+          sceneStyle: {
             backgroundColor: theme.white,
           },
         }}
       >
-          <Tabs.Screen
-            name="index"
-            options={{
-              title: 'Início',
-              unmountOnBlur: false,
-              tabBarIcon: ({ focused }: { focused: boolean }) => (
-                <TabIcon name="home" focused={focused} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="games"
-            options={{
-              title: 'Jogos',
-              unmountOnBlur: false,
-              tabBarIcon: ({ focused }: { focused: boolean }) => (
-                <TabIcon name="games" focused={focused} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="resenha"
-            options={{
-              title: 'Resenha',
-              unmountOnBlur: false,
-              tabBarIcon: ({ focused }: { focused: boolean }) => (
-                <TabIcon name="resenha" focused={focused} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="profile"
-            options={{
-              title: 'Perfil',
-              unmountOnBlur: false,
-              tabBarIcon: ({ focused }: { focused: boolean }) => (
-                <TabIcon name="profile" focused={focused} />
-              ),
-            }}
-          />
-        </Tabs>
-      </>
-    );
-  }
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Início',
+            unmountOnBlur: false,
+            tabBarIcon: ({ focused }: { focused: boolean }) => (
+              <TabIcon name="home" focused={focused} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="games"
+          options={{
+            title: 'Jogos',
+            unmountOnBlur: false,
+            tabBarIcon: ({ focused }: { focused: boolean }) => (
+              <TabIcon name="games" focused={focused} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="resenha"
+          options={{
+            title: 'Resenha',
+            unmountOnBlur: false,
+            tabBarIcon: ({ focused }: { focused: boolean }) => (
+              <TabIcon name="resenha" focused={focused} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Perfil',
+            unmountOnBlur: false,
+            tabBarIcon: ({ focused }: { focused: boolean }) => (
+              <TabIcon name="profile" focused={focused} />
+            ),
+          }}
+        />
+      </Tabs>
+    </>
+  );
+}
