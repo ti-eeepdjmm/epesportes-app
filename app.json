@@ -19,7 +19,10 @@
         "light": "./assets/icons/ios-light.png",
         "tinted": "./assets/icons/ios-tinted.png"
       },
-      "bundleIdentifier": "com.epdjmm.epesportes"
+      "bundleIdentifier": "com.epdjmm.epesportes",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -58,7 +61,20 @@
           "photosPermission": "The app accesses your photos to let you share them with your friends."
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -67,11 +83,16 @@
       "router": {
         "origin": false
       },
-      "API_URL": "https://epesportes-api-production.up.railway.app/",
       "eas": {
         "projectId": "86d8633b-e06c-4fe9-9c93-5af8869057ec"
       }
     },
-    "owner": "epdjmm"
+    "owner": "epdjmm",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/86d8633b-e06c-4fe9-9c93-5af8869057ec"
+    }
   }
 }

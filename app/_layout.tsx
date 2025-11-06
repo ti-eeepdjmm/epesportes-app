@@ -129,6 +129,7 @@ function RenderApp({ onLayout }: { onLayout: () => void }) {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaView
         style={{ flex: 1, backgroundColor: theme }}
+        edges={['top']}
         onLayout={onLayout}
       >
         <StatusBar style={theme === '#000' ? 'light' : 'dark'} />
