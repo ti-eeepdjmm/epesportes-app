@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   Dimensions,
+  Pressable,
 } from 'react-native';
 import { ProgressBar } from 'react-native-paper';
 import { useTheme } from '@/hooks/useTheme';
@@ -20,12 +21,12 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   runOnJS,
-  useAnimatedGestureHandler,
+  interpolate,
 } from 'react-native-reanimated';
 import {
   GestureHandlerRootView,
-  PanGestureHandler,
-  PanGestureHandlerGestureEvent,
+  GestureDetector,
+  Gesture,
 } from 'react-native-gesture-handler';
 
 interface PollCardProps {
@@ -47,42 +48,36 @@ export const PollCard: React.FC<PollCardProps> = ({
   const [loadingUsers, setLoadingUsers] = useState(false);
 
   const translateY = useSharedValue(0);
-
   const screenHeight = Dimensions.get('window').height;
+  const MODAL_HEIGHT = screenHeight * 0.9;
 
-  useEffect(() => {
-    if (showVoters) {
-      translateY.value = screenHeight;
-      translateY.value = withSpring(0, { damping: 20 });
-    }
-  }, [showVoters]);
-
-  const gestureHandler = useAnimatedGestureHandler<
-    PanGestureHandlerGestureEvent,
-    { startY: number }
-  >({
-    onStart: (_, ctx) => {
-      ctx.startY = translateY.value;
-    },
-    onActive: (event, ctx) => {
-      const newValue = ctx.startY + event.translationY;
-      // Só permite puxar para baixo
-      if (newValue >= 0) {
-        translateY.value = newValue;
+  const panGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      if (event.translationY > 0) {
+        translateY.value = event.translationY;
       }
-    },
-    onEnd: (event) => {
+    })
+    .onEnd((event) => {
       if (event.translationY > 100) {
         runOnJS(setShowVoters)(null);
       } else {
-        translateY.value = withSpring(0);
+        translateY.value = withSpring(0, { damping: 20 });
       }
-    },
-  });
+    });
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
+    opacity: interpolate(translateY.value, [MODAL_HEIGHT, 0], [0, 1]),
   }));
+
+  useEffect(() => {
+    if (showVoters) {
+      translateY.value = MODAL_HEIGHT;
+      translateY.value = withSpring(0, { damping: 20 });
+    } else {
+      translateY.value = withSpring(MODAL_HEIGHT);
+    }
+  }, [showVoters]);
 
   const hasVoted = poll.options.some((opt) =>
     opt.userVotes.includes(currentUserId)
@@ -236,43 +231,46 @@ export const PollCard: React.FC<PollCardProps> = ({
       {/* Modal com gesto de swipe para baixo */}
       <Modal visible={!!showVoters && voterUsers.length > 0} transparent animationType="fade">
         <GestureHandlerRootView style={stylesModal.overlay}>
-          <PanGestureHandler onGestureEvent={gestureHandler}>
-            <Animated.View style={[stylesModal.container, animatedStyle, { backgroundColor: theme.white, minHeight: screenHeight * 0.5, }]}>
-              <View style={stylesModal.dragIndicatorWrapper}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowVoters(null)} />
+          <Animated.View style={[stylesModal.container, animatedStyle, { backgroundColor: theme.white }]}>
+            <GestureDetector gesture={panGesture}>
+              <View style={{ paddingVertical: 8, alignItems: 'center' }}>
                 <View style={[stylesModal.dragIndicator, { backgroundColor: theme.grayLight }]} />
               </View>
+            </GestureDetector>
 
-              <Text style={[stylesModal.title, { color: theme.black }]}>Votos em: {showVoters?.label}</Text>
+            <Text style={[stylesModal.title, { color: theme.black }]}>Votos em: {showVoters?.label}</Text>
 
-              {loadingUsers ? (
-                <ActivityIndicator
-                  size="large"
-                  color={theme.greenLight}
-                  style={{ marginVertical: 20 }}
-                />
-              ) : (
-                <FlatList
-                  data={voterUsers}
-                  keyExtractor={(item) => item.id.toString()}
-                  renderItem={({ item }) => (
-                    <View style={stylesModal.item}>
-                      <Image
-                        source={{
-                          uri: item.profilePhoto ||
-                            `https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/avatars/default-avatar.png`,
-                        }}
-                        style={stylesModal.avatar}
-                      />
-                      <View style={stylesModal.info}>
-                        <Text style={[stylesModal.name, { color: theme.black }]}>{item.name}</Text>
-                        <Text style={[stylesModal.username, { color: theme.gray }]}>@{item.username}</Text>
-                      </View>
+            {loadingUsers ? (
+              <ActivityIndicator
+                size="large"
+                color={theme.greenLight}
+                style={{ marginVertical: 20 }}
+              />
+            ) : (
+              <FlatList
+                data={voterUsers}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                  <View style={stylesModal.item}>
+                    <Image
+                      source={{
+                        uri: item.profilePhoto ||
+                          `https://wkflssszfhrwokgtzznz.supabase.co/storage/v1/object/public/avatars/default-avatar.png`,
+                      }}
+                      style={stylesModal.avatar}
+                    />
+                    <View style={stylesModal.info}>
+                      <Text style={[stylesModal.name, { color: theme.black }]}>{item.name}</Text>
+                      <Text style={[stylesModal.username, { color: theme.gray }]}>@{item.username}</Text>
                     </View>
-                  )}
-                />
-              )}
-            </Animated.View>
-          </PanGestureHandler>
+                  </View>
+                )}
+                showsVerticalScrollIndicator={true}
+                nestedScrollEnabled={true}
+              />
+            )}
+          </Animated.View>
         </GestureHandlerRootView>
       </Modal>
     </View>
@@ -307,21 +305,19 @@ const stylesModal = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   container: {
+    height: '90%',
     width: '100%',
     padding: 24,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     alignSelf: 'stretch',
   },
-  dragIndicatorWrapper: {
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
   dragIndicator: {
-    width: 48,
+    width: 40,
     height: 5,
-    borderRadius: 2.5,
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginBottom: 12,
   },
   title: {
     fontSize: 18,
