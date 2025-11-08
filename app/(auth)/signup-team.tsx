@@ -225,7 +225,7 @@ export default function SignUpTeamScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles(theme).container}>
+    <View style={styles(theme).container}>
       <StyledText style={styles(theme).title}>Escolha seu Time</StyledText>
       <SelectField
         name="team"
@@ -285,7 +285,7 @@ export default function SignUpTeamScreen() {
         style={{ marginTop: 24 }}
       />
       <AppLoader visible={isLoading} />
-    </ScrollView>
+    </View>
   );
 }
 

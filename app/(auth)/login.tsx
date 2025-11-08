@@ -138,9 +138,8 @@ export default function LoginScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
+    <View
       style={[styles.container, { backgroundColor: theme.white }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <StyledText style={[styles.title, { color: theme.greenLight }]}>
         Login
@@ -203,7 +202,7 @@ export default function LoginScreen() {
           </StyledText>
         </View>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   )
 }
 

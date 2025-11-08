@@ -4,6 +4,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   Alert,
+  View,
 } from 'react-native';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -118,9 +119,8 @@ export default function ResetPasswordScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
+    <View
       style={[styles.container, { backgroundColor: theme.white }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {showEmailForm ? (
         <>
@@ -173,7 +173,7 @@ export default function ResetPasswordScreen() {
           />
         </>
       )}
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

@@ -33,7 +33,8 @@
       "package": "com.epdjmm.epesportes",
       "permissions": [
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+       "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "bundler": "metro",

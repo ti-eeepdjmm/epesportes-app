@@ -1,6 +1,6 @@
 // app/(auth)/_layout.tsx
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Slot } from 'expo-router';
 import Animated, {
   useSharedValue,
@@ -8,17 +8,17 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import {
-  Platform,
-  KeyboardAvoidingView,
   SafeAreaView,
   StyleSheet,
-  ScrollView,
 } from 'react-native';
 import { SignUpProvider } from '@/contexts/SignUpContext'; // 👈 IMPORTANTE
 import { StatusBar } from 'expo-status-bar';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 export default function AuthLayout() {
   const opacity = useSharedValue(0);
+
+ 
 
   const fadeStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -31,21 +31,18 @@ export default function AuthLayout() {
   return (
     <SignUpProvider>
       <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
+        <KeyboardAwareScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          enableOnAndroid
+          extraScrollHeight={20}
+          keyboardOpeningTime={0}
         >
-          <ScrollView
-            contentContainerStyle={{ flexGrow: 1 }}
-            keyboardShouldPersistTaps="handled"
-          >
             <Animated.View style={[styles.flex, fadeStyle]}>
               <Slot />
               <StatusBar style="dark" backgroundColor="white" />
             </Animated.View>
-          </ScrollView>
-        </KeyboardAvoidingView>
+          </KeyboardAwareScrollView>
       </SafeAreaView>
     </SignUpProvider>
   );

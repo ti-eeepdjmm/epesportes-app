@@ -98,8 +98,11 @@ function RenderApp({ fontsReady }: { fontsReady: boolean }) {
         }
 
         // Auth
+        // clearTokens();
+        
         const token = await getAccessToken();
         const registered = await isUserRegistered();
+        
 
         if (!token) {
           router.replace(registered ? '/(auth)/login' : '/(onboarding)/start');
