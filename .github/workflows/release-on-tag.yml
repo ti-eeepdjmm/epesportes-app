@@ -1,0 +1,35 @@
+name: Release on Tag
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          git fetch --prune --unshallow
+          git fetch --tags
+          LATEST_TAG=$(git describe --tags --abbrev=0 HEAD^)
+          COMMITS=$(git log $LATEST_TAG..HEAD --pretty=format:'- %s (%an)')
+          echo "COMMITS<<EOF" >> $GITHUB_ENV
+          echo "$COMMITS" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            Changes since last release:
+            ${{ env.COMMITS }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
