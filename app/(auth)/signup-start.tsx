@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -47,7 +47,7 @@ export default function SignUpStart() {
     container: {
       flex: 1,
       padding: 24,
-      justifyContent: 'center',
+      paddingTop: 48,
       backgroundColor: theme.white,
     },
     title: {
@@ -79,10 +79,7 @@ export default function SignUpStart() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={styles.container}>
       <StyledText style={styles.title}>Criar Conta</StyledText>
 
       <InputField
@@ -125,6 +122,6 @@ export default function SignUpStart() {
         loading={isSubmitting}
         style={{ marginTop: 16 }}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 }

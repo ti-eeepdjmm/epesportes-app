@@ -1,8 +1,9 @@
 // app/(tabs)/_layout.tsx
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { View } from 'react-native';
 
 import { TabIcon } from '@/components/icons/TabIcon';
 import { useTheme } from '@/hooks/useTheme';
@@ -15,37 +16,43 @@ export default function TabLayout(): JSX.Element {
   // Lida com back em Android conforme sua lógica
   useSmartBackHandler();
 
+  // Memo para evitar recriação de objetos de estilo que podem causar flashes/re-render pesados
+  const tabBarStyle = useMemo(() => ({
+    backgroundColor: theme.greenBackground,
+    borderTopColor: theme.white,
+    paddingTop: 8,
+    height: 64 + bottom,
+  }), [theme.greenBackground, theme.white, bottom]);
+
+  const sceneContainerStyle = useMemo(() => ({
+    backgroundColor: theme.white,
+  }), [theme.white]);
+
+  const labelStyle = useMemo(() => ({
+    fontSize: 12,
+    // Garantir fallback caso a fonte ainda não esteja disponível momentaneamente
+    fontFamily: 'Poppins_400Regular',
+  }), []);
+
   return (
-    <>
-      <StatusBar style="dark" />
+    <View style={{ flex: 1, backgroundColor: theme.white }}>
+      <StatusBar style={theme.greenBackground === '#000' ? 'light' : 'dark'} />
       <Tabs
         initialRouteName="index"
+        // lazy evita montar todas as telas imediatamente, reduzindo risco de frame drop pós-splash
+        // detachInactiveScreens mantém memória baixa e evita acúmulo, sem piscar pois usamos lazy
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: '#fff',
           tabBarInactiveTintColor: '#fff',
           tabBarHideOnKeyboard: true,
-          tabBarShowLabel: true, // força exibição dos labels
-
-          tabBarStyle: {
-            backgroundColor: theme.greenBackground,
-            borderTopColor: theme.white,
-            paddingTop: 8,
-            height: 64 + bottom,
-          },
-
-          tabBarLabelStyle: {
-            fontSize: 12,
-            fontFamily: 'Poppins_400Regular',
-          },
-
-          // Mantém o estado das telas
+          tabBarShowLabel: true,
+          tabBarStyle,
+          tabBarLabelStyle: labelStyle,
           unmountOnBlur: false,
-
-          // Cor de fundo das cenas + SafeArea aplicada nas telas
-          sceneStyle: {
-            backgroundColor: theme.white,
-          },
+          sceneStyle: sceneContainerStyle,
+          // Melhorar performance evitando remount em foco
+          lazy: true,
         }}
       >
         <Tabs.Screen
@@ -89,6 +96,6 @@ export default function TabLayout(): JSX.Element {
           }}
         />
       </Tabs>
-    </>
+    </View>
   );
 }

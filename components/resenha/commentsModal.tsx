@@ -40,7 +40,7 @@ interface Props {
 
 const COMMENTS_PER_PAGE = 10;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
-const MODAL_HEIGHT = SCREEN_HEIGHT * 0.5;
+const MODAL_HEIGHT = SCREEN_HEIGHT * 0.9; // Aumentado de 0.5 para 0.9
 
 export const CommentsModal: React.FC<Props> = ({ visible, postId, onClose }) => {
     const theme = useTheme();
@@ -57,6 +57,7 @@ export const CommentsModal: React.FC<Props> = ({ visible, postId, onClose }) => 
     const [newComment, setNewComment] = useState('');
     const [loading, setLoading] = useState(false);
     const [visibleComments, setVisibleComments] = useState(COMMENTS_PER_PAGE);
+    const [inputHeight, setInputHeight] = useState(100); // Valor inicial maior
 
     const translateY = useSharedValue(MODAL_HEIGHT);
     const flatListRef = useRef<FlatList>(null);
@@ -107,11 +108,12 @@ export const CommentsModal: React.FC<Props> = ({ visible, postId, onClose }) => 
         const comment = newComment;
         setNewComment('');
         await addCommentToPost(postId, comment, user.id);
+        setVisibleComments((prev) => prev + 1); // Incrementar para incluir o novo comentário
         setLoading(false);
 
         setTimeout(() => {
             flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
+        }, 200);
     };
 
     const loadMoreComments = () => {
@@ -123,25 +125,30 @@ export const CommentsModal: React.FC<Props> = ({ visible, postId, onClose }) => 
     return (
         <Modal visible={visible} animationType="fade" transparent>
             <GestureHandlerRootView style={styles.overlay}>
-                <GestureDetector gesture={panGesture}>
-                    <Animated.View
-                        style={[styles.container, animatedStyle, { backgroundColor: theme.white }]}
-                    >
-                        <View style={styles.handleBar} />
-                        <KeyboardAvoidingView
-                            style={{ flex: 1 }}
-                            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                            keyboardVerticalOffset={80}
-                        >
-                            <View style={{ flex: 1 }}>
-                                <View style={styles.header}>
-                                    <Text style={[styles.title, { color: theme.black }]}>Comentários</Text>
-                                </View>
+                <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+                <Animated.View
+                    style={[styles.container, animatedStyle, { backgroundColor: theme.white }]}
+                >
+                    <GestureDetector gesture={panGesture}>
+                        <View style={{ paddingVertical: 8, alignItems: 'center' }}>
+                            <View style={styles.handleBar} />
+                        </View>
+                    </GestureDetector>
+                        
+                        <View style={styles.header}>
+                            <Text style={[styles.title, { color: theme.black }]}>Comentários</Text>
+                        </View>
 
+                        <View style={{ flex: 1 }}>
+                            <KeyboardAvoidingView
+                                style={{ flex: 1 }}
+                                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                                keyboardVerticalOffset={80}
+                            >
                                 <FlatList
                                     ref={flatListRef}
-                                    data={post.comments.slice(0, visibleComments)}
-                                    keyExtractor={(_, index) => `comment-${index}`}
+                                    data={post.comments.slice(-visibleComments)}
+                                    keyExtractor={(item, index) => item._id || `comment-${item.userId}-${index}`}
                                     renderItem={({ item }) => {
                                         const author = users[item.userId];
                                         return (
@@ -163,13 +170,25 @@ export const CommentsModal: React.FC<Props> = ({ visible, postId, onClose }) => 
                                     }}
                                     onEndReached={loadMoreComments}
                                     onEndReachedThreshold={0.5}
-                                    contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
+                                    contentContainerStyle={{ 
+                                        paddingHorizontal: 16,
+                                        paddingTop: 16, 
+                                        paddingBottom: 16,
+                                        flexGrow: 1,
+                                    }}
                                     keyboardShouldPersistTaps="handled"
+                                    showsVerticalScrollIndicator={true}
+                                    nestedScrollEnabled={true}
                                 />
+                            </KeyboardAvoidingView>
+                        </View>
 
-                                <Separator />
+                        <Separator />
 
-                                <View style={styles.inputContainer}>
+                        <View
+                            style={styles.inputContainer}
+                            onLayout={(e) => setInputHeight(e.nativeEvent.layout.height)}
+                        >
                                     <TextInput
                                         value={newComment}
                                         onChangeText={setNewComment}
@@ -200,14 +219,11 @@ export const CommentsModal: React.FC<Props> = ({ visible, postId, onClose }) => 
                                         )}
                                     </Pressable>
                                 </View>
-                            </View>
-                        </KeyboardAvoidingView>
-                    </Animated.View>
-                </GestureDetector>
-            </GestureHandlerRootView>
-        </Modal>
-    );
-};
+                        </Animated.View>
+                    </GestureHandlerRootView>
+                </Modal>
+            );
+        };
 
 const styles = StyleSheet.create({
     overlay: {
@@ -216,12 +232,14 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     container: {
-        maxHeight: '90%',
-        minHeight: Dimensions.get('window').height * 0.5,
+        height: '90%', // Altura fixa em 90% da tela
         padding: 16,
+        paddingBottom: 8,
         borderTopLeftRadius: 16,
         borderTopRightRadius: 16,
         width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
     },
     handleBar: {
         width: 40,
@@ -230,6 +248,11 @@ const styles = StyleSheet.create({
         backgroundColor: '#ccc',
         alignSelf: 'center',
         marginBottom: 12,
+        marginTop: 8,
+    },
+    handleBarContainer: {
+        paddingVertical: 12,
+        alignItems: 'center',
     },
     header: {
         flexDirection: 'row',
@@ -258,6 +281,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
+        paddingTop: 12,
+        paddingBottom: 8,
+        backgroundColor: 'transparent',
     },
     input: {
         flex: 1,

@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Dimensions,
+  Pressable,
 } from 'react-native';
 import { SvgCssUri } from 'react-native-svg/css';
 import { TimelinePostType, User } from '@/types';
@@ -28,7 +29,7 @@ import {
 } from 'react-native-gesture-handler';
 
 const screenHeight = Dimensions.get('window').height;
-const MODAL_HEIGHT = screenHeight * 0.5;
+const MODAL_HEIGHT = screenHeight * 0.9; // Aumentado de 0.5 para 0.9
 
 interface Props {
   post: TimelinePostType;
@@ -101,16 +102,20 @@ export const ReactionsModal: React.FC<Props> = ({ post, visible, onClose }) => {
   return (
     <Modal visible={visible} animationType="fade" transparent>
       <GestureHandlerRootView style={styles.overlay}>
-        <GestureDetector gesture={panGesture}>
-          <Animated.View
-            style={[
-              styles.container,
-              animatedStyle,
-              { backgroundColor: theme.white },
-            ]}
-          >
-            <View style={styles.handleBar} />
-            <Text style={[styles.title, { color: theme.black }]}>Reações</Text>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <Animated.View
+          style={[
+            styles.container,
+            animatedStyle,
+            { backgroundColor: theme.white },
+          ]}
+        >
+          <GestureDetector gesture={panGesture}>
+            <View style={{ paddingVertical: 8, alignItems: 'center' }}>
+              <View style={styles.handleBar} />
+            </View>
+          </GestureDetector>
+          <Text style={[styles.title, { color: theme.black }]}>Reações</Text>
             {loading ? (
               <ActivityIndicator size="large" color={theme.greenLight} style={{ marginVertical: 20 }} />
             ) : (
@@ -140,7 +145,6 @@ export const ReactionsModal: React.FC<Props> = ({ post, visible, onClose }) => {
               />
             )}
           </Animated.View>
-        </GestureDetector>
       </GestureHandlerRootView>
     </Modal>
   );
@@ -153,8 +157,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   container: {
-    maxHeight: '80%',
-    minHeight: screenHeight * 0.5,
+    height: '90%', // Altura fixa em 90% da tela
     padding: 24,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
