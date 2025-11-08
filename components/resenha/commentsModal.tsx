@@ -40,7 +40,7 @@ interface Props {
 
 const COMMENTS_PER_PAGE = 10;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
-const MODAL_HEIGHT = SCREEN_HEIGHT * 0.5;
+const MODAL_HEIGHT = SCREEN_HEIGHT * 0.9; // Aumentado de 0.5 para 0.9
 
 export const CommentsModal: React.FC<Props> = ({ visible, postId, onClose }) => {
     const theme = useTheme();
@@ -232,8 +232,7 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     container: {
-        maxHeight: '90%',
-        minHeight: Dimensions.get('window').height * 0.5,
+        height: '90%', // Altura fixa em 90% da tela
         padding: 16,
         paddingBottom: 8,
         borderTopLeftRadius: 16,

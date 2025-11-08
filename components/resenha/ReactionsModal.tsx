@@ -29,7 +29,7 @@ import {
 } from 'react-native-gesture-handler';
 
 const screenHeight = Dimensions.get('window').height;
-const MODAL_HEIGHT = screenHeight * 0.5;
+const MODAL_HEIGHT = screenHeight * 0.9; // Aumentado de 0.5 para 0.9
 
 interface Props {
   post: TimelinePostType;
@@ -157,8 +157,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   container: {
-    maxHeight: '80%',
-    minHeight: screenHeight * 0.5,
+    height: '90%', // Altura fixa em 90% da tela
     padding: 24,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
